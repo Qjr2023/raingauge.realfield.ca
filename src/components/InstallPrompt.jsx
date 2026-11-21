@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { InstallIcon } from './Icons';
 
 const DISMISS_KEY = 'installPromptDismissedAt';
 const DISMISS_DAYS = 14;
@@ -66,7 +67,9 @@ function InstallPrompt() {
 
   return (
     <div className="install-banner" role="status">
-      <span className="install-banner-icon" aria-hidden>📲</span>
+      <span className="install-banner-icon">
+        <InstallIcon size={26} />
+      </span>
       <div className="install-banner-text">
         <strong>Install Virtual Rain Gauge</strong>
         {showIosHint ? (

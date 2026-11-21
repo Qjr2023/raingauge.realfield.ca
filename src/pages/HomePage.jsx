@@ -5,6 +5,7 @@ import InfoModal from '../components/InfoModal';
 import Legend from '../components/Legend';
 import ButtonBar from '../components/ButtonBar';
 import LogoCarousel from '../components/LogoCarousel';
+import { TapIcon } from '../components/Icons';
 import ChartModal from '../components/ChartModal';
 import DailyPrecipitationChart from '../components/DailyPrecipitationChart';
 import YearlyComparisonChart from '../components/YearlyComparisonChart';
@@ -59,7 +60,8 @@ function HomePage() {
         <Legend selectedLayer={selectedLayer} />
         {!hasInteracted && (
           <div className="map-hint" role="status">
-            👆 Tap anywhere on the map to get precipitation
+            <TapIcon size={16} />
+            <span>Tap anywhere on the map to get precipitation</span>
           </div>
         )}
       </div>

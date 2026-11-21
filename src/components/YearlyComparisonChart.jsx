@@ -38,7 +38,7 @@ function YearlyComparisonChart({ seasonData, seriesName = 'Season' }) {
     <div className="chart-wrap">
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e6e6e6" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} unit="mm" width={48} />
           <Tooltip formatter={(value, name) => [`${Number(value).toFixed(1)} mm`, name]} />
@@ -56,7 +56,7 @@ function YearlyComparisonChart({ seasonData, seriesName = 'Season' }) {
             type="monotone"
             dataKey="average"
             name="Historical avg"
-            stroke="#e8590c"
+            stroke="#4d4d4d"
             strokeWidth={2}
             strokeDasharray="6 4"
             dot={false}

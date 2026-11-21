@@ -1,15 +1,16 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+const PIN_ICON = L.divIcon({
+  className: 'map-pin',
+  html:
+    '<svg viewBox="0 0 28 38" width="28" height="38" aria-hidden="true">' +
+    '<path d="M14 1.5C7.1 1.5 1.5 7 1.5 13.8 1.5 23 14 36.5 14 36.5S26.5 23 26.5 13.8C26.5 7 20.9 1.5 14 1.5z" ' +
+    'fill="#0b6a41" stroke="#fff" stroke-width="2"/>' +
+    '<circle cx="14" cy="14" r="4.5" fill="#fff"/></svg>',
+  iconSize: [28, 38],
+  iconAnchor: [14, 37],
 });
 
 const CENTER = [52.1557, -106.69];
@@ -91,6 +92,7 @@ function MapView({
       {markerPosition && (
         <Marker
           position={[markerPosition.latitude, markerPosition.longitude]}
+          icon={PIN_ICON}
         />
       )}
     </MapContainer>

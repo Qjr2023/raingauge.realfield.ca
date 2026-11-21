@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'Virtual Rain Gauge',
         short_name: 'Rain Gauge',
         description: 'Virtual Rain Gauge — precipitation map for Saskatchewan',
-        theme_color: '#1480C7',
+        theme_color: '#FFFFFF',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

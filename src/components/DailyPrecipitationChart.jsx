@@ -24,7 +24,7 @@ function DailyPrecipitationChart({ dailyData }) {
     <div className="chart-wrap">
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e6e6e6" />
           <XAxis dataKey="label" tick={{ fontSize: 11 }} />
           <YAxis
             tick={{ fontSize: 11 }}

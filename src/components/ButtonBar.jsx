@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AppButton from './AppButton';
 import Modal from './Modal';
+import { CheckIcon, InfoIcon, LayersIcon } from './Icons';
 
 const LAYERS = [
   { value: 'weeklyRain', label: 'Last week' },
@@ -34,12 +35,12 @@ function ButtonBar({
         theme="primary"
         label="Select Layer"
         sublabel={current ? current.label : undefined}
-        icon="▦"
+        icon={<LayersIcon />}
         onPress={() => setLayerModalVisible(true)}
       />
       <AppButton
         label="Instruction and info"
-        icon="ℹ"
+        icon={<InfoIcon />}
         onPress={onInfoPress}
       />
 
@@ -61,7 +62,7 @@ function ButtonBar({
               onClick={() => handleLayerChange(layer.value)}
             >
               <span>{layer.label}</span>
-              {active && <span className="layer-check" aria-hidden>✓</span>}
+              {active && <CheckIcon size={18} />}
             </button>
           );
         })}

@@ -1,4 +1,5 @@
 import Modal from './Modal';
+import { ChartIcon } from './Icons';
 
 function splitValue(text) {
   if (typeof text !== 'string') return { label: '', value: '' };
@@ -26,7 +27,7 @@ function ValueRow({ text, chartTitle, chartAriaLabel, onChartOpen }) {
           title={chartTitle}
           aria-label={chartAriaLabel}
         >
-          📊
+          <ChartIcon />
         </button>
       )}
     </div>
@@ -68,7 +69,7 @@ function ValuesModal({
                 chartAriaLabel="Open crop year comparison chart"
                 onChartOpen={onYearChartOpen}
               />
-              <p className="value-hint">Tap 📊 to see charts</p>
+              <p className="value-hint">Tap a chart icon to see the chart</p>
             </div>
           ) : (
             <div className="error-box">

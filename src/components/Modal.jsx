@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { CloseIcon } from './Icons';
 
 function Modal({ visible, onClose, title, wide, scroll, children }) {
   useEffect(() => {
@@ -35,7 +36,7 @@ function Modal({ visible, onClose, title, wide, scroll, children }) {
           onClick={onClose}
           aria-label="Close"
         >
-          ✕
+          <CloseIcon size={16} />
         </button>
         {title && <h3>{title}</h3>}
         {children}
