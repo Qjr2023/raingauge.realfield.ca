@@ -6,9 +6,9 @@ Date: 2026-11-26. Status: approved (Fang), implementation plan to follow.
 
 The web app stops depending on Google Cloud. The six API endpoints it calls and the three rain
 overlays it draws are served from the GAIG VM, computed from the rasters the VM's own HRDPA
-pipeline already produces (`/mnt/data/ndac/cog/rain/`). The API keeps the request and response
-formats of the current Cloud Run API (`api.realfield.ca`), so the mobile app could be pointed at it
-later without changes to its code.
+pipeline already produces (the VM's rain directory, `DEPLOY_RAIN_DIR` in `deploy/.env`). The API
+keeps the request and response formats of the current Cloud Run API (`api.realfield.ca`), so the
+mobile app could be pointed at it later without changes to its code.
 
 Out of scope: the mobile app, Nam's domains, shutting down the Google resources, a host name for
 the VM (the bare-IP Let's Encrypt certificate stays).
@@ -20,7 +20,8 @@ browser ── /raingauge/            nginx ── static build (unchanged)
         ── /raingauge/api/...     nginx ── raingauge-api container (127.0.0.1:<port>)   [new]
         ── /raingauge/tiles/...   nginx ── TiTiler container (127.0.0.1:8000)          [new route]
                                              │                  │
-                                             └── /mnt/data/ndac/cog/rain/ (read-only) ──┘
+                                             └── the VM's rain directory (read-only) ──┘
+                                                 (`DEPLOY_RAIN_DIR` in `deploy/.env`)
 ```
 
 - `server/`: Python 3.12, FastAPI, rasterio, numpy, Pillow. One container, no state, no database.
@@ -115,5 +116,13 @@ the VM.
 
 ## Rollback
 
-`deploy/.env` back to `DEPLOY_API_UPSTREAM` with the Cloud Run URL and the previous commit of
-`main`; `deploy.sh --force`. The Google resources are untouched by this work.
+Revert the frontend commits on `main` (the VM redeploys within a minute) or set `DEPLOY_API_PORT`
+and the tiles route aside in `.env`; the original Google resources are untouched by this work.
+
+## Result (2026-11-26)
+
+`server/tools/compare_api.py` against the original Cloud Run API, 8 points: weekly totals agree to
+0.0 mm (identical at all 8 points); seasonal totals for 2026 differ by up to 9.1 mm (Calgary, 350.8
+against 359.9; the other 7 points within 3.1 mm); crop-year history differs as expected (April to
+November only; different sources before 2026-08): 30 to 126 mm less per past crop year, the current
+crop year within 5 mm. The app now uses only the VM.
