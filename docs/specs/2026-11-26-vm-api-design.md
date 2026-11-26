@@ -98,8 +98,9 @@ The frontend already shows `detail` from error responses (`ChartModal.parseError
 ## Performance
 
 A point read is one pixel per band; a crop-year stack has 365 bands in 64 px blocks, a few tens of
-ms per stack. The comparison endpoints read 7 stacks. `rain_stats.json` and the raster handles are
-cached per process and refreshed when the file's mtime changes. Target: under 1 s per request on
+ms per stack. The comparison endpoints read 7 stacks. `rain_stats.json` is cached per process and re-read when its
+mtime changes; rasters are opened per request (about 1 ms), so a rewritten file is picked up
+immediately. Target: under 1 s per request on
 the VM.
 
 ## Testing
