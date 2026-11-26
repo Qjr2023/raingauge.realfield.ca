@@ -1,6 +1,9 @@
 const API_CONFIG = {
+  // Build-time override (VITE_API_BASE_URL). A self-hosted build sets a same-origin path that
+  // nginx proxies to the API (see deploy/): the API only allows the original origin in CORS.
+  BASE_URL:
+    import.meta.env.VITE_API_BASE_URL || 'https://api-2vudqtm7bq-uc.a.run.app',
   // BASE_URL: 'https://api.realfield.ca',
-  BASE_URL: 'https://api-2vudqtm7bq-uc.a.run.app',
   // BASE_URL: 'http://localhost:8000',
   ENDPOINTS: {
     PRECIPITATION_VALUES: '/precipitation_values',

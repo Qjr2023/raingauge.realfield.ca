@@ -61,6 +61,10 @@ gcloud run deploy raingauge-web \
 
 Or build/push the included `Dockerfile` and deploy the image. The container serves `dist` on `$PORT` (8080).
 
+### Own server (nginx + Docker)
+
+See `deploy/README.md`.
+
 **Do not use Firebase for this app** — the older portal lives in `raingauge-app.web.app`.
 
 ## Install on Android
