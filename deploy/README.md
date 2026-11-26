@@ -29,8 +29,8 @@ cp deploy/.env.example deploy/.env && $EDITOR deploy/.env
 deploy/deploy.sh --force
 ```
 
-Docker and the docker compose plugin must be installed; the user running deploy.sh needs the
-docker group and passwordless sudo for nginx and the web root.
+Docker, the docker compose plugin, curl and flock must be installed; the user running deploy.sh
+needs the docker group and passwordless sudo for nginx and the web root.
 
 `DEPLOY_NGINX_CONF` must be a file that an existing `server` block includes (the template holds
 `location` blocks only, for both the http and the https server; http only redirects). Then:
@@ -52,5 +52,6 @@ python3 -m venv .venv && .venv/bin/pip install -r server/requirements-dev.txt &&
 
 ## Remove
 
-Delete the installed nginx config and reload nginx, drop the cron line, remove the web root and
-the checkout.
+`docker compose -f deploy/docker-compose.yml down --rmi local` to stop and remove the API
+container and its image. Then delete the installed nginx config and reload nginx, drop the cron
+line, remove the web root and the checkout.

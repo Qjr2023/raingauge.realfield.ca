@@ -37,9 +37,13 @@ location ^~ @@BASE@@ {
     # Rain overlays: only the three window COGs, PNG only; the colormap comes in the query string
     # (built by the API's legend_info, so legend and map agree). Tiles exist to zoom 10.
     location ~ ^@@BASE@@tiles/(week|season|year)/(\d+)/(\d+)/(\d+)\.png$ {
-        proxy_pass @@TITILER_URL@@/cog/tiles/WebMercatorQuad/$2/$3/$4.png?url=/data/rain/rain_$1.tif&$args;
+        if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
+        # Only the colormap goes through: a forwarded $args would let a client append its own
+        # url= (TiTiler takes the last one) and read other datasets or remote files.
+        proxy_pass @@TITILER_URL@@/cog/tiles/WebMercatorQuad/$2/$3/$4.png?url=/data/rain/rain_$1.tif&colormap=$arg_colormap;
         proxy_set_header Host $host;
         proxy_read_timeout 60s;
+        proxy_hide_header Cache-Control;
         add_header Cache-Control "public, max-age=3600";
     }
     # Anything else under tiles/ is not a page: 404 instead of the SPA fallback. A plain prefix
@@ -54,9 +58,11 @@ location ^~ @@BASE@@ {
     # Hashed bundles are immutable; the entry page, manifest and service worker must not be cached,
     # or phones keep an old build.
     location ~ ^@@BASE@@assets/ {
+        if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
     location ~ ^@@BASE@@(index\.html|sw\.js|workbox-.*\.js|manifest\.webmanifest|registerSW\.js)$ {
+        if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
         add_header Cache-Control "no-cache";
     }
 }

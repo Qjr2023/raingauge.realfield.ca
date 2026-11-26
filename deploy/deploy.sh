@@ -23,6 +23,10 @@ case "$DEPLOY_BASE" in */) ;; *) echo "DEPLOY_BASE must end with /"; exit 1;; es
 base_noslash=${DEPLOY_BASE%/}; [ -n "$base_noslash" ] || base_noslash=/
 IMAGE=raingauge-web-build
 
+# One deploy at a time: cron runs every minute and a first build takes minutes.
+exec 9>/tmp/raingauge-deploy.lock
+flock -n 9 || { [ -n "${1:-}" ] && echo "another deploy.sh is running"; exit 0; }
+
 cd "$DEPLOY_CHECKOUT"
 if [ "${1:-}" != --local ]; then
   git fetch -q origin "$DEPLOY_BRANCH"
@@ -37,7 +41,21 @@ staging=$(mktemp -d)
 cid=
 trap 'rm -rf "$staging"; [ -n "$cid" ] && docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
 
-# nginx config: render the template, install only when it differs, test, reload.
+# The API container: build the image and (re)create the container only when something changed.
+# Wait on /version, which answers without touching the rain data, so a data problem does not
+# block a deploy (and /health reports it as before).
+docker compose --env-file "$here/.env" -f "$here/docker-compose.yml" up -d --build --quiet-pull \
+  >/dev/null 2>"$staging/compose.log" \
+  || { echo "$(date -Is) NOT deployed $rev: api container failed"; cat "$staging/compose.log"; exit 1; }
+for _ in $(seq 10); do
+  curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null && break
+  sleep 1
+done
+curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null \
+  || { echo "$(date -Is) NOT deployed $rev: api not healthy"; docker logs --tail 30 raingauge-api; exit 1; }
+
+# nginx config: render the template, install only when it differs, test, reload. This comes after
+# the API container is up so nginx never points at a port that is not answering yet.
 sed -e "s|@@HOST@@|$DEPLOY_HOST|g" -e "s|@@BASE@@|$DEPLOY_BASE|g" -e "s|@@BASE_NOSLASH@@|$base_noslash|g" \
     -e "s|@@WEBROOT@@|${DEPLOY_WEBROOT%/}|g" -e "s|@@API_PORT@@|$DEPLOY_API_PORT|g" \
     -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" "$here/nginx.conf.template" > "$staging/nginx.conf"
@@ -47,17 +65,6 @@ if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
     || { echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1; }
   sudo systemctl reload nginx
 fi
-
-# The API container: build the image and (re)create the container only when something changed.
-docker compose --env-file "$here/.env" -f "$here/docker-compose.yml" up -d --build --quiet-pull \
-  >/dev/null 2>"$staging/compose.log" \
-  || { echo "$(date -Is) NOT deployed $rev: api container failed"; cat "$staging/compose.log"; exit 1; }
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/health" >/dev/null && break
-  sleep 1
-done
-curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/health" >/dev/null \
-  || { echo "$(date -Is) NOT deployed $rev: api not healthy"; docker logs --tail 30 raingauge-api; exit 1; }
 
 # The legacy builder prints a deprecation notice on stderr on every run; keep the log to one line
 # per deploy and show the build output only when the build fails.
