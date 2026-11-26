@@ -1,5 +1,6 @@
 import { APP_VERSION } from '../config/version';
 import Modal from './Modal';
+import { PARTNER_LOGOS } from '../config/logos';
 
 const CAPA_PDF =
   'https://collaboration.cmc.ec.gc.ca/cmc/cmoi/product_guide/docs/lib/capa_information_leaflet_20141118_en.pdf';
@@ -31,31 +32,9 @@ function InfoModal({ visible, onClose }) {
         </p>
 
         <div className="info-logos">
-          <img
-            className="info-logo"
-            src={`${import.meta.env.BASE_URL}logos/agbio.png`}
-            alt="College of Agriculture and Bioresources"
-          />
-          <img
-            className="info-logo"
-            src={`${import.meta.env.BASE_URL}logos/aci.png`}
-            alt="Agronomic Crop Imaging Lab"
-          />
-          <img
-            className="info-logo"
-            src={`${import.meta.env.BASE_URL}logos/ndac.png`}
-            alt="Nutrien Digital Agriculture Centre"
-          />
-          <img
-            className="info-logo"
-            src={`${import.meta.env.BASE_URL}logos/acreage.png`}
-            alt="ACREAGE Digital Agriculture — Agroecosystem Digital Twins and Intelligent Systems"
-          />
-          <img
-            className="info-logo"
-            src={`${import.meta.env.BASE_URL}logos/realfield.png`}
-            alt="RealField"
-          />
+          {PARTNER_LOGOS.map(({ src, alt }) => (
+            <img key={src} className="info-logo" src={src} alt={alt} />
+          ))}
         </div>
 
         <p className="version-line">Version: {APP_VERSION}</p>

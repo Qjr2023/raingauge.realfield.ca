@@ -47,16 +47,13 @@ function InvalidateSize() {
 
 function MapView({
   selectedLayer,
-  legendInfo,
+  overlayUrl,
   overlayOpacity = 0.8,
   showRoads = true,
   showLabels = true,
   onMapPress,
   markerPosition,
 }) {
-  // Tile URL template from /legend_info: the API builds it with the day's colormap.
-  const overlayUrl = legendInfo?.[selectedLayer]?.tiles;
-
   return (
     <MapContainer
       center={CENTER}

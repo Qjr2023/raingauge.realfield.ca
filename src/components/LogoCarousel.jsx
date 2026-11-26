@@ -1,27 +1,5 @@
 import { useEffect, useState } from 'react';
-
-const LOGOS = [
-  {
-    src: `${import.meta.env.BASE_URL}logos/agbio.png`,
-    alt: 'College of Agriculture and Bioresources',
-  },
-  {
-    src: `${import.meta.env.BASE_URL}logos/aci.png`,
-    alt: 'Agronomic Crop Imaging Lab',
-  },
-  {
-    src: `${import.meta.env.BASE_URL}logos/ndac.png`,
-    alt: 'Nutrien Digital Agriculture Centre',
-  },
-  {
-    src: `${import.meta.env.BASE_URL}logos/acreage.png`,
-    alt: 'ACREAGE Digital Agriculture — Agroecosystem Digital Twins and Intelligent Systems',
-  },
-  {
-    src: `${import.meta.env.BASE_URL}logos/realfield.png`,
-    alt: 'RealField',
-  },
-];
+import { PARTNER_LOGOS } from '../config/logos';
 
 const ROTATE_MS = 4000;
 
@@ -36,9 +14,9 @@ function LogoCarousel() {
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused || LOGOS.length <= 1) return undefined;
+    if (paused || PARTNER_LOGOS.length <= 1) return undefined;
     const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % LOGOS.length);
+      setIndex((i) => (i + 1) % PARTNER_LOGOS.length);
     }, ROTATE_MS);
     return () => clearInterval(timer);
   }, [paused]);
@@ -51,7 +29,7 @@ function LogoCarousel() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      {LOGOS.map((logo, i) => (
+      {PARTNER_LOGOS.map((logo, i) => (
         <img
           key={logo.src}
           src={logo.src}

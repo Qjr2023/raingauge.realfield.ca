@@ -11,7 +11,7 @@ import DailyPrecipitationChart from '../components/DailyPrecipitationChart';
 import YearlyComparisonChart from '../components/YearlyComparisonChart';
 import API_CONFIG from '../config/apiConfig';
 import { fetchPrecipitationValues } from '../utils/mapPress';
-import { useLegendInfo } from '../utils/legendInfo';
+import { useLegendInfo } from '../hooks/useLegendInfo';
 
 function HomePage() {
   const [selectedLayer, setSelectedLayer] = useState('weeklyRain');
@@ -26,6 +26,8 @@ function HomePage() {
   const [markerPosition, setMarkerPosition] = useState(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const legend = useLegendInfo();
+  // Tile URL template and legend of the selected overlay; the API builds the template with the day's colormap.
+  const layer = legend.info?.[selectedLayer];
 
   const handleMapPress = async (latlng) => {
     setHasInteracted(true);
@@ -53,7 +55,7 @@ function HomePage() {
       <div className="map-area">
         <MapView
           selectedLayer={selectedLayer}
-          legendInfo={legend.info}
+          overlayUrl={layer?.tiles}
           overlayOpacity={overlayOpacity}
           showRoads={showRoads}
           showLabels={showLabels}
@@ -61,9 +63,10 @@ function HomePage() {
           markerPosition={markerPosition}
         />
         <Legend
-          selectedLayer={selectedLayer}
-          legendInfo={legend.info}
-          loading={legend.loading}
+          layer={layer}
+          loading={legend.loading && !layer}
+          error={legend.error}
+          onRetry={legend.reload}
         />
         {!hasInteracted && (
           <div className="map-hint" role="status">
@@ -119,7 +122,7 @@ function HomePage() {
           <YearlyComparisonChart
             seasonData={data}
             seriesName="Crop year"
-            note="April to November only, every year alike (no winter data before 2026)."
+            note="April to November only, for every year (no winter data before 2026)."
           />
         )}
       </ChartModal>
