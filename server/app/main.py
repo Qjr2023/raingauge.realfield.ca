@@ -89,11 +89,8 @@ def create_app(settings: Settings) -> FastAPI:
     def legend_image(layer: str) -> Response:
         if layer not in LAYERS:
             raise HTTPException(status_code=404, detail="Unknown layer")
-        return Response(
-            content=legend_png(layer),
-            media_type="image/png",
-            headers={"Cache-Control": "public, max-age=86400"},
-        )
+        # Caching is set by nginx on the api/ path.
+        return Response(content=legend_png(layer), media_type="image/png")
 
     @app.post("/precipitation_values")
     def precipitation_values(p: Point) -> dict:

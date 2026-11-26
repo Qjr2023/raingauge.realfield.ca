@@ -1,6 +1,6 @@
 # Virtual Rain Gauge (Web PWA)
 
-Installable Progressive Web App port of the mobile Virtual Rain Gauge. Uses the same API and map tiles as `rain_gauge_app`.
+Installable Progressive Web App port of the mobile Virtual Rain Gauge.
 
 ## Features
 
@@ -32,40 +32,20 @@ Output is in `dist/`.
 
 ## API
 
-Configured in `src/config/apiConfig.js` → `https://api.realfield.ca/`
+The app calls the Rain Gauge API at `VITE_API_BASE_URL` (build time; `src/config/apiConfig.js`
+has the original hosted API as the default). `server/` is a FastAPI implementation of the same
+endpoints that reads daily HRDPA rasters on the server and also provides the map overlays through
+TiTiler; the web app draws overlays from the `tiles` field of `legend_info`, which only that server
+returns.
 
 ## Deploy
 
-### Vercel (recommended)
+See `deploy/README.md` (nginx + Docker on a Linux server).
 
-1. Import this folder as a Vercel project (root = this directory).
-2. Build command: `npm run build`
-3. Output directory: `dist`
-4. `vercel.json` already rewrites SPA routes to `index.html`.
-5. Optionally attach custom domain `raingauge.realfield.ca`.
+The Vercel / Cloud Run instructions were removed because that hosting no longer serves the
+overlays.
 
-Or CLI:
-
-```bash
-npx vercel --prod
-```
-
-### Google Cloud Run
-
-```bash
-gcloud run deploy raingauge-web \
-  --source . \
-  --region northamerica-northeast1 \
-  --allow-unauthenticated
-```
-
-Or build/push the included `Dockerfile` and deploy the image. The container serves `dist` on `$PORT` (8080).
-
-### Own server (nginx + Docker)
-
-See `deploy/README.md`.
-
-**Do not use Firebase for this app** — the older portal lives in `raingauge-app.web.app`.
+**Do not use Firebase for this app**: the older portal lives in `raingauge-app.web.app`.
 
 ## Install on Android
 
@@ -73,7 +53,7 @@ See `deploy/README.md`.
 2. Menu → **Install app** or **Add to Home screen**.
 3. Launch from the home screen for a fullscreen (standalone) experience.
 
-HTTPS is required for install prompts (Vercel / Cloud Run provide this).
+HTTPS is required for install prompts.
 
 ## Version
 

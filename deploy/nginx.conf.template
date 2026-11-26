@@ -38,6 +38,7 @@ location ^~ @@BASE@@ {
     # (built by the API's legend_info, so legend and map agree). Tiles exist to zoom 10.
     location ~ ^@@BASE@@tiles/(week|season|year)/(\d+)/(\d+)/(\d+)\.png$ {
         if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
+        @@TILES_LIMIT_REQ@@
         # Only the colormap goes through: a forwarded $args would let a client append its own
         # url= (TiTiler takes the last one) and read other datasets or remote files.
         proxy_pass @@TITILER_URL@@/cog/tiles/WebMercatorQuad/$2/$3/$4.png?url=/data/rain/rain_$1.tif&colormap=$arg_colormap;

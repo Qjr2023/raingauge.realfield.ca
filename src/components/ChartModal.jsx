@@ -10,6 +10,9 @@ function parseError(error) {
     if (error.response.status === 503) {
       return 'The service is temporarily unavailable. Please try again later.';
     }
+    if (typeof error.response.data?.detail === 'string') {
+      return error.response.data.detail;
+    }
     return `Error: ${error.response.status}`;
   }
   if (error.request) {

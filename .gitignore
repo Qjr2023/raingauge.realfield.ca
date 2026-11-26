@@ -33,3 +33,7 @@ dist-ssr
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Server (deploy/deploy.sh)
+.deploy.lock
+.venv/

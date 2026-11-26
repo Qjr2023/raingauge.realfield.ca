@@ -10,6 +10,9 @@ export async function fetchPrecipitationValues({ latitude, longitude }) {
     return response.data;
   } catch (error) {
     console.error(error);
+    // The API explains a 404 or 503 in `detail`; the modal shows it instead of the generic text.
+    const detail = error.response?.data?.detail;
+    if (typeof detail === 'string') return { error: detail };
     return null;
   }
 }

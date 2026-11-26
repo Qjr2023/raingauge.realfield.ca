@@ -1,6 +1,6 @@
 # Virtual Rain Gauge: API and tiles from the VM's own rasters
 
-Date: 2026-11-26. Status: approved (Fang), implementation plan to follow.
+Date: 2026-11-26. Status: implemented 2026-11-26.
 
 ## Goal
 
@@ -29,7 +29,7 @@ browser ── /raingauge/            nginx ── static build (unchanged)
 - nginx: `location ^~ <base>api/` proxies to the container (replacing today's proxy to Cloud Run).
   `location ~ ^<base>tiles/(week|season|year)/(\d+)/(\d+)/(\d+)\.png$` proxies to TiTiler
   `/cog/tiles/WebMercatorQuad/$z/$x/$y.png?url=/data/rain/rain_$layer.tif&<query>`; only these three
-  files can be requested. Same rate-limit zone as Prairie Layers tiles.
+  files can be requested. An optional `limit_req` directive from `.env` (`DEPLOY_TILES_LIMIT_REQ`).
 - Deploy: `deploy/deploy.sh` also builds the server image and (re)starts it with
   `deploy/docker-compose.yml`. New `.env` keys: `DEPLOY_RAIN_DIR`, `DEPLOY_API_PORT`,
   `DEPLOY_TITILER_URL`; `DEPLOY_API_UPSTREAM` goes away. The nginx template gains the two routes.
@@ -58,13 +58,16 @@ All responses `application/json`. POST bodies: `{"lat": <float>, "lon": <float>}
 | `POST /daily_precipitation` | `{"2026-11-25": {"precip": 0.03}, ... 7 days, newest first}` | the current crop-year stack, bands of the last 7 days |
 | `POST /season_comparison` | `{"data": [{"year": 2020, "precip_sum": 271.6, "precip_sum_to_now": 271.6}, ...]}` | last 7 seasons incl. the current one; `precip_sum` = Apr 1 .. Oct 31 (to newest day for the current one), `precip_sum_to_now` = Apr 1 .. the newest day's calendar day, capped at Oct 31 |
 | `POST /year_comparison` | same shape, `year` = crop-year label | last 7 crop years; **April to November only, every year alike** (no winter data before 2026-10); `_to_now` = up to the newest day's calendar position in the crop year |
-| `GET /legend_info` | per layer `weeklyRain` / `seasonRain` / `yearRain`: `title`, `uri`, `min`, `max`, `mode: "continuous"`, `breaks`, `palette` (Nam's 16 colours); added: `tiles` (URL template `<base>tiles/<layer>/{z}/{x}/{y}.png?<colormap query>`), `as_of` (newest day) | `rain_stats.json` |
+| `GET /legend_info` | per layer `weeklyRain` / `seasonRain` / `yearRain`: `title`, `uri`, `min`, `max`, `mode: "continuous"`, `breaks`, `palette` (the original 16-colour palette); added: `tiles` (URL template `<base>tiles/<layer>/{z}/{x}/{y}.png?<colormap query>`), `as_of` (newest day) | `rain_stats.json` |
 | `GET /legend/<layer>.png` | the legend gradient image that `uri` points to | palette |
 | `GET /version` | `{"web": {"minimumRequiredVersion": "1.1.0"}, "ios": {...}, "android": {...}}` | constant |
 | `GET /health` | `{"ok": true, "newest_day": ...}` | `rain_stats.json` |
 
-Values in mm, one decimal (daily: two). A missing day contributes nothing to a sum; a window with
-no present days at a point is 404.
+Values in mm, one decimal (daily: two). A missing day contributes nothing to a sum; 404 when no
+window has data at the point; a single empty window shows 0.0mm.
+
+`uri` and `tiles` are site-relative paths; a client on another host must prefix them with the
+server's origin.
 
 Breaks (as the current API): weekly 0 .. p90, season and year p5 .. p95; the range is widened to a
 "nice" step (1, 2, 5, 10, 20, 25, 50, 100 ...) so there are at most 8 classes. `min`/`max` strings:
@@ -73,7 +76,7 @@ Breaks (as the current API): weekly 0 .. p90, season and year p5 .. p95; the ran
 ## Tiles
 
 TiTiler renders the window COG with an interval colormap built from the breaks: 16 intervals from
-`min` to `max`, Nam's 16 palette colours in order, below `min` the first colour, above `max` the
+`min` to `max`, the original 16-colour palette in order, below `min` the first colour, above `max` the
 last, nodata transparent. The API encodes this as the query string of the `tiles` template in
 `legend_info`, so legend and map always agree. Rain tiles exist to zoom 10; Leaflet scales them.
 
@@ -94,7 +97,7 @@ last, nodata transparent. The API encodes this as the query string of the `tiles
 | point outside the raster or nodata in every day of the window | 404 `{"detail": "No data at this location"}` |
 | a required raster or `rain_stats.json` missing or unreadable | 503 `{"detail": "Rain data unavailable"}` |
 
-The frontend already shows `detail` from error responses (`ChartModal.parseError`).
+The frontend shows `detail` from error responses (see item 5).
 
 ## Performance
 
@@ -116,8 +119,11 @@ the VM.
 
 ## Rollback
 
-Revert the frontend commits on `main` (the VM redeploys within a minute) or set `DEPLOY_API_PORT`
-and the tiles route aside in `.env`; the original Google resources are untouched by this work.
+Revert the range of commits that introduced `server/`, the tiles route and the frontend changes on
+`main`, restore the previous `.env` keys on the server before the cron deploy picks it up (or run
+`deploy.sh --force`), and remove the API container with
+`docker compose -f deploy/docker-compose.yml down`. The original Google resources are untouched by
+this work.
 
 ## Result (2026-11-26)
 

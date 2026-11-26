@@ -49,7 +49,11 @@ function ValuesModal({
         <div className="spinner" />
       ) : (
         <>
-          {modalData ? (
+          {modalData?.error ? (
+            <div className="error-box">
+              <p>{modalData.error}</p>
+            </div>
+          ) : modalData ? (
             <div className="value-list">
               <ValueRow
                 text={modalData.weekly_precipitation}

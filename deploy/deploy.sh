@@ -23,11 +23,11 @@ case "$DEPLOY_BASE" in */) ;; *) echo "DEPLOY_BASE must end with /"; exit 1;; es
 base_noslash=${DEPLOY_BASE%/}; [ -n "$base_noslash" ] || base_noslash=/
 IMAGE=raingauge-web-build
 
+cd "$DEPLOY_CHECKOUT"
 # One deploy at a time: cron runs every minute and a first build takes minutes.
-exec 9>/tmp/raingauge-deploy.lock
+exec 9>"$DEPLOY_CHECKOUT/.deploy.lock"
 flock -n 9 || { [ -n "${1:-}" ] && echo "another deploy.sh is running"; exit 0; }
 
-cd "$DEPLOY_CHECKOUT"
 if [ "${1:-}" != --local ]; then
   git fetch -q origin "$DEPLOY_BRANCH"
   if [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$DEPLOY_BRANCH")" ] && [ "${1:-}" != --force ]; then
@@ -58,7 +58,8 @@ curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null \
 # the API container is up so nginx never points at a port that is not answering yet.
 sed -e "s|@@HOST@@|$DEPLOY_HOST|g" -e "s|@@BASE@@|$DEPLOY_BASE|g" -e "s|@@BASE_NOSLASH@@|$base_noslash|g" \
     -e "s|@@WEBROOT@@|${DEPLOY_WEBROOT%/}|g" -e "s|@@API_PORT@@|$DEPLOY_API_PORT|g" \
-    -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" "$here/nginx.conf.template" > "$staging/nginx.conf"
+    -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" -e "s|@@TILES_LIMIT_REQ@@|${DEPLOY_TILES_LIMIT_REQ:-}|g" \
+    "$here/nginx.conf.template" > "$staging/nginx.conf"
 if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
   sudo install -m 644 "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"
   sudo nginx -t >/dev/null 2>"$staging/nginx.log" \
