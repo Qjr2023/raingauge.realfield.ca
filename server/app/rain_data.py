@@ -32,7 +32,11 @@ class RainData:
         try:
             mtime = p.stat().st_mtime
             if self._stats is None or mtime != self._stats_mtime:
-                self._stats, self._stats_mtime = json.loads(p.read_text()), mtime
+                stats = json.loads(p.read_text())
+                if (not {"newest_day", "crop_years", "layers"} <= stats.keys()
+                        or not stats["crop_years"]):
+                    raise DataUnavailable("rain_stats.json: incomplete")
+                self._stats, self._stats_mtime = stats, mtime
         except (OSError, ValueError) as e:
             raise DataUnavailable(f"rain_stats.json: {e}") from e
         return self._stats
