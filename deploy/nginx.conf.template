@@ -3,8 +3,8 @@
 # Meant to be included inside an existing `server` block (http and https). http only redirects.
 #
 #   @@BASE@@         the app (built with VITE_BASE=@@BASE@@)
-#   @@BASE@@api/     same-origin proxy to the Rain Gauge API: its CORS allowlist only has the
-#                    original origin, so the browser may not call it from here directly.
+#   @@BASE@@api/     the Rain Gauge API container (deploy/docker-compose.yml)
+#   @@BASE@@tiles/   rain overlays rendered by TiTiler from the same rasters
 
 location = @@BASE_NOSLASH@@ {
     return 301 @@BASE@@;
@@ -12,13 +12,10 @@ location = @@BASE_NOSLASH@@ {
 
 location ^~ @@BASE@@api/ {
     if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
-    proxy_pass @@API_UPSTREAM@@/;
-    proxy_set_header Host @@API_HOST@@;
-    proxy_ssl_server_name on;
-    proxy_ssl_protocols TLSv1.2 TLSv1.3;
-    proxy_read_timeout 60s;
-    proxy_hide_header Access-Control-Allow-Origin;
-    proxy_hide_header Access-Control-Allow-Credentials;
+    proxy_pass http://127.0.0.1:@@API_PORT@@/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 30s;
     add_header Cache-Control "no-store";
 }
 
@@ -37,6 +34,15 @@ location ^~ @@BASE@@ {
         image/x-icon               ico;
         font/woff2                 woff2;
     }
+    # Rain overlays: only the three window COGs, PNG only; the colormap comes in the query string
+    # (built by the API's legend_info, so legend and map agree). Tiles exist to zoom 10.
+    location ~ ^@@BASE@@tiles/(week|season|year)/(\d+)/(\d+)/(\d+)\.png$ {
+        proxy_pass @@TITILER_URL@@/cog/tiles/WebMercatorQuad/$2/$3/$4.png?url=/data/rain/rain_$1.tif&$args;
+        proxy_set_header Host $host;
+        proxy_read_timeout 60s;
+        add_header Cache-Control "public, max-age=3600";
+    }
+
     # SPA: any path that is not a file on disk gets index.html.
     try_files $uri $uri/ @@BASE@@index.html;
 

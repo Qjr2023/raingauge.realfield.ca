@@ -1,0 +1,16 @@
+# The Rain Gauge API next to the static site. Started by deploy/deploy.sh with
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
+# DEPLOY_* values come from deploy/.env (see .env.example).
+services:
+  api:
+    build: ../server
+    image: raingauge-api
+    container_name: raingauge-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DEPLOY_API_PORT}:8000"
+    environment:
+      RAIN_DIR: /data/rain
+      PUBLIC_BASE: ${DEPLOY_BASE}
+    volumes:
+      - ${DEPLOY_RAIN_DIR}:/data/rain:ro
