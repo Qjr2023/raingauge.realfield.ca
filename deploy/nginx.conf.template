@@ -42,6 +42,11 @@ location ^~ @@BASE@@ {
         proxy_read_timeout 60s;
         add_header Cache-Control "public, max-age=3600";
     }
+    # Anything else under tiles/ is not a page: 404 instead of the SPA fallback. A plain prefix
+    # location loses to the regex above when that one matches.
+    location @@BASE@@tiles/ {
+        return 404;
+    }
 
     # SPA: any path that is not a file on disk gets index.html.
     try_files $uri $uri/ @@BASE@@index.html;
