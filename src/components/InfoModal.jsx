@@ -33,27 +33,27 @@ function InfoModal({ visible, onClose }) {
         <div className="info-logos">
           <img
             className="info-logo"
-            src="https://storage.googleapis.com/rain_gauge_map_data/images/agbio.png"
+            src={`${import.meta.env.BASE_URL}logos/agbio.png`}
             alt="College of Agriculture and Bioresources"
           />
           <img
             className="info-logo"
-            src="https://storage.googleapis.com/rain_gauge_map_data/images/aci.png"
+            src={`${import.meta.env.BASE_URL}logos/aci.png`}
             alt="Agronomic Crop Imaging Lab"
           />
           <img
             className="info-logo"
-            src="https://storage.googleapis.com/rain_gauge_map_data/images/ndac.png"
+            src={`${import.meta.env.BASE_URL}logos/ndac.png`}
             alt="Nutrien Digital Agriculture Centre"
           />
           <img
             className="info-logo"
-            src="https://storage.googleapis.com/rain_gauge_map_data/images/acreage.png"
+            src={`${import.meta.env.BASE_URL}logos/acreage.png`}
             alt="ACREAGE Digital Agriculture — Agroecosystem Digital Twins and Intelligent Systems"
           />
           <img
             className="info-logo"
-            src="https://storage.googleapis.com/rain_gauge_map_data/images/realfield.png"
+            src={`${import.meta.env.BASE_URL}logos/realfield.png`}
             alt="RealField"
           />
         </div>

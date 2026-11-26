@@ -13,7 +13,7 @@ import {
  * Compares precipitation sums across years (used for both the growing
  * season and the crop year). Expects {data: [{year, precip_sum}]}.
  */
-function YearlyComparisonChart({ seasonData, seriesName = 'Season' }) {
+function YearlyComparisonChart({ seasonData, seriesName = 'Season', note }) {
   const rows = Array.isArray(seasonData)
     ? seasonData
     : Array.isArray(seasonData?.data)
@@ -63,6 +63,7 @@ function YearlyComparisonChart({ seasonData, seriesName = 'Season' }) {
           />
         </LineChart>
       </ResponsiveContainer>
+      {note && <p className="chart-note">{note}</p>}
     </div>
   );
 }

@@ -1,33 +1,8 @@
-import { useEffect, useState } from 'react';
-import API_CONFIG from '../config/apiConfig';
-
-function Legend({ selectedLayer }) {
-  const [info, setInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchLegendInfo = async () => {
-      try {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LEGEND_INFO}`
-        );
-        const data = await response.json();
-        if (!cancelled) {
-          setInfo(data);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching legend:', error);
-        if (!cancelled) setLoading(false);
-      }
-    };
-    fetchLegendInfo();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+/**
+ * Legend of the selected overlay: title, colour bar and range, from /legend_info
+ * (fetched once in HomePage via useLegendInfo).
+ */
+function Legend({ selectedLayer, legendInfo, loading }) {
   if (loading) {
     return (
       <div className="legend">
@@ -36,9 +11,8 @@ function Legend({ selectedLayer }) {
     );
   }
 
-  if (!info || !info[selectedLayer]) return null;
-
-  const layer = info[selectedLayer];
+  const layer = legendInfo?.[selectedLayer];
+  if (!layer) return null;
 
   return (
     <div className="legend">

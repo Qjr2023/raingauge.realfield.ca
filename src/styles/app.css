@@ -658,6 +658,12 @@ svg {
   margin-top: 0.75rem;
 }
 
+.chart-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
 .info-logos {
   display: flex;
   flex-wrap: wrap;

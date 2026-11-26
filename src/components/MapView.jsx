@@ -14,11 +14,6 @@ const PIN_ICON = L.divIcon({
 });
 
 const CENTER = [52.1557, -106.69];
-const LAYER_URLS = {
-  weeklyRain: 'https://storage.googleapis.com/rain_gauge_map_data/weeklyRain/{z}/{x}/{y}',
-  seasonRain: 'https://storage.googleapis.com/rain_gauge_map_data/seasonRain/{z}/{x}/{y}',
-  yearRain: 'https://storage.googleapis.com/rain_gauge_map_data/yearRain/{z}/{x}/{y}',
-};
 // Rain tiles exist up to zoom 10 (the data is 2.5 km per pixel); Leaflet scales them up beyond that.
 const RAIN_MAX_NATIVE_ZOOM = 10;
 
@@ -52,13 +47,15 @@ function InvalidateSize() {
 
 function MapView({
   selectedLayer,
+  legendInfo,
   overlayOpacity = 0.8,
   showRoads = true,
   showLabels = true,
   onMapPress,
   markerPosition,
 }) {
-  const overlayUrl = LAYER_URLS[selectedLayer];
+  // Tile URL template from /legend_info: the API builds it with the day's colormap.
+  const overlayUrl = legendInfo?.[selectedLayer]?.tiles;
 
   return (
     <MapContainer

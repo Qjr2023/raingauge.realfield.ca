@@ -11,6 +11,7 @@ import DailyPrecipitationChart from '../components/DailyPrecipitationChart';
 import YearlyComparisonChart from '../components/YearlyComparisonChart';
 import API_CONFIG from '../config/apiConfig';
 import { fetchPrecipitationValues } from '../utils/mapPress';
+import { useLegendInfo } from '../utils/legendInfo';
 
 function HomePage() {
   const [selectedLayer, setSelectedLayer] = useState('weeklyRain');
@@ -24,6 +25,7 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const legend = useLegendInfo();
 
   const handleMapPress = async (latlng) => {
     setHasInteracted(true);
@@ -51,13 +53,18 @@ function HomePage() {
       <div className="map-area">
         <MapView
           selectedLayer={selectedLayer}
+          legendInfo={legend.info}
           overlayOpacity={overlayOpacity}
           showRoads={showRoads}
           showLabels={showLabels}
           onMapPress={handleMapPress}
           markerPosition={markerPosition}
         />
-        <Legend selectedLayer={selectedLayer} />
+        <Legend
+          selectedLayer={selectedLayer}
+          legendInfo={legend.info}
+          loading={legend.loading}
+        />
         {!hasInteracted && (
           <div className="map-hint" role="status">
             <TapIcon size={16} />
@@ -109,7 +116,11 @@ function HomePage() {
         markerPosition={markerPosition}
       >
         {(data) => (
-          <YearlyComparisonChart seasonData={data} seriesName="Crop year" />
+          <YearlyComparisonChart
+            seasonData={data}
+            seriesName="Crop year"
+            note="April to November only, every year alike (no winter data before 2026)."
+          />
         )}
       </ChartModal>
 

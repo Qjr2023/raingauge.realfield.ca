@@ -2,23 +2,23 @@ import { useEffect, useState } from 'react';
 
 const LOGOS = [
   {
-    src: 'https://storage.googleapis.com/rain_gauge_map_data/images/agbio.png',
+    src: `${import.meta.env.BASE_URL}logos/agbio.png`,
     alt: 'College of Agriculture and Bioresources',
   },
   {
-    src: 'https://storage.googleapis.com/rain_gauge_map_data/images/aci.png',
+    src: `${import.meta.env.BASE_URL}logos/aci.png`,
     alt: 'Agronomic Crop Imaging Lab',
   },
   {
-    src: 'https://storage.googleapis.com/rain_gauge_map_data/images/ndac.png',
+    src: `${import.meta.env.BASE_URL}logos/ndac.png`,
     alt: 'Nutrien Digital Agriculture Centre',
   },
   {
-    src: 'https://storage.googleapis.com/rain_gauge_map_data/images/acreage.png',
+    src: `${import.meta.env.BASE_URL}logos/acreage.png`,
     alt: 'ACREAGE Digital Agriculture — Agroecosystem Digital Twins and Intelligent Systems',
   },
   {
-    src: 'https://storage.googleapis.com/rain_gauge_map_data/images/realfield.png',
+    src: `${import.meta.env.BASE_URL}logos/realfield.png`,
     alt: 'RealField',
   },
 ];
