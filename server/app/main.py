@@ -85,6 +85,12 @@ def create_app(settings: Settings) -> FastAPI:
     def legend() -> dict:
         return legend_info(data.stats(), settings.public_base)
 
+    @app.get("/rain_stats")
+    def rain_stats() -> dict:
+        # rain_stats.json as is: window definitions, newest day, crop years and percentiles, which
+        # the charts need (the same file Prairie Layers serves).
+        return data.stats()
+
     @app.get("/legend/{layer}.png")
     def legend_image(layer: str) -> Response:
         if layer not in LAYERS:

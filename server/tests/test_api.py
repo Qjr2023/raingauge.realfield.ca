@@ -110,10 +110,19 @@ def test_legend_info_and_png(client):
     assert weekly["label"] == "Last 7 days"
     assert weekly["range"] == [0.0, 25.0]
     assert "resampling=bilinear&rescale=0,25&colormap=" in weekly["tiles"]
+    assert weekly["rain_stats"] == "/raingauge/api/rain_stats"
     png = client.get("/legend/weeklyRain.png")
     assert png.status_code == 200
     assert png.headers["content-type"] == "image/png"
     assert client.get("/legend/nope.png").status_code == 404
+
+
+def test_rain_stats(client):
+    r = client.get("/rain_stats")
+    assert r.status_code == 200
+    stats = r.json()
+    assert stats["crop_years"] == [2025, 2026, 2027]
+    assert stats["layers"]["season"]["start"] == "2026-04-01"
 
 
 def test_version(client):
@@ -127,4 +136,5 @@ def test_data_unavailable_is_503(tmp_path):
     app = create_app(Settings(rain_dir=tmp_path, public_base="/", app_version="1.1.0"))
     c = TestClient(app)
     assert c.get("/legend_info").status_code == 503
+    assert c.get("/rain_stats").status_code == 503
     assert c.post("/precipitation_values", json=_body(TARGET)).status_code == 503

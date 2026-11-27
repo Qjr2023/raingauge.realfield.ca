@@ -6,6 +6,7 @@
 #   @@BASE@@api/     the Rain Gauge API container (deploy/docker-compose.yml)
 #   @@BASE@@tiles/   rain overlays rendered by TiTiler from the same rasters
 #   @@BASE@@stats/   TiTiler statistics of the pixels on screen (auto-stretch), POST only
+#   @@BASE@@point/   daily series at a point for one crop-year stack (the rain card charts)
 #   @@BASE@@vector/  the cropland outline (GeoJSON) from @@VECTOR_DIR@@
 
 location = @@BASE_NOSLASH@@ {
@@ -68,6 +69,16 @@ location ^~ @@BASE@@ {
         proxy_read_timeout 30s;
         add_header Cache-Control "no-store";
     }
+    # Daily series at a point for one crop-year stack (the rain card charts; one request per stack).
+    location ~ ^@@BASE@@point/(\d{4})/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$ {
+        if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
+        @@TILES_LIMIT_REQ@@
+        proxy_pass @@TITILER_URL@@/cog/point/$2,$3?url=/data/rain/rain_daily_$1.tif;
+        proxy_set_header Host $host;
+        proxy_read_timeout 30s;
+        add_header Cache-Control "no-store";
+    }
+    location @@BASE@@point/ { return 404; }
     # Cropland outline (GeoJSON) drawn on top of the rain overlay. The types map above has no
     # geojson entry, so the type comes from default_type.
     location = @@BASE@@vector/cropland_outline.geojson {

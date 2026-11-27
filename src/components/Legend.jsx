@@ -2,10 +2,9 @@ import { fmtRange } from '../utils/tiles';
 
 /**
  * Legend of the selected overlay: label, colour bar and range, from the matching /legend_info
- * entry (fetched in HomePage via useLegendInfo). With auto-stretch on, the ends show the
- * on-screen range (range, from AutoStretch) instead of the layer's region-wide range. Shows a
- * spinner until the first load and a retry prompt when the load failed and there is nothing to
- * show yet.
+ * entry (fetched in HomePage via useLegendInfo). The ends show the on-screen range (range, from
+ * AutoStretch) once it has arrived, else the layer's region-wide range. Shows a spinner until the
+ * first load and a retry prompt when the load failed and there is nothing to show yet.
  */
 
 // The gradient bar is drawn in CSS from the palette. An older API without palette/range/label
@@ -16,7 +15,7 @@ const hasRamp = (layer) =>
   Array.isArray(layer.range) &&
   typeof layer.label === 'string';
 
-function Legend({ layer, range, autoStretch, onToggleStretch, loading, error, onRetry }) {
+function Legend({ layer, range, loading, error, onRetry }) {
   if (loading) {
     return (
       <div className="legend">
@@ -55,7 +54,7 @@ function Legend({ layer, range, autoStretch, onToggleStretch, loading, error, on
     );
   }
 
-  // The on-screen range when auto-stretch has one, else the region-wide range. With fade_low the
+  // The on-screen range once auto-stretch has one, else the region-wide range. With fade_low the
   // low end is 0 (the bottom of the ramp fades out) unless the stretch starts above it.
   const lo = range && range[0] > 0 ? fmtRange(range[0]) : 0;
   const hi = fmtRange(range ? range[1] : layer.range[1]);
@@ -74,15 +73,6 @@ function Legend({ layer, range, autoStretch, onToggleStretch, loading, error, on
         <span>{lo}</span>
         <span>≥ {hi}</span>
       </div>
-      <button
-        type="button"
-        className="legend-stretch"
-        aria-pressed={autoStretch}
-        onClick={onToggleStretch}
-      >
-        Auto-stretch
-        <small>{autoStretch ? 'colours fit what is on screen' : 'colours fit the whole region'}</small>
-      </button>
     </div>
   );
 }

@@ -86,7 +86,8 @@ def _mm(v: float) -> str:
 
 def legend_info(stats: dict, public_base: str) -> dict:
     """The /legend_info body: per layer, title, label, legend image, range, palette, tiles,
-    the statistics route for auto-stretch, the fade-low flag and the cropland outline."""
+    the statistics route for auto-stretch, the rain_stats route for the charts, the fade-low flag
+    and the cropland outline."""
     base = public_base if public_base.endswith("/") else public_base + "/"
     out = {}
     for layer, short in LAYERS.items():
@@ -105,6 +106,7 @@ def legend_info(stats: dict, public_base: str) -> dict:
             "palette": PALETTE,
             "tiles": f"{base}tiles/{short}/{{z}}/{{x}}/{{y}}.png?{tile_query(breaks)}",
             "stats": f"{base}stats/{short}",
+            "rain_stats": f"{base}api/rain_stats",
             "fade_low": True,
             "outline": f"{base}vector/cropland_outline.geojson",
             "as_of": stats["newest_day"],

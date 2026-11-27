@@ -26,9 +26,8 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
   const [hasInteracted, setHasInteracted] = useState(false);
-  // Auto-stretch: the colour ramp spans the pixels on screen (range from AutoStretch) instead of
-  // the region-wide rescale in the API's template.
-  const [autoStretch, setAutoStretch] = useState(true);
+  // Auto-stretch (always on): the colour ramp spans the pixels on screen (range from AutoStretch)
+  // instead of the region-wide rescale in the API's template.
   const [range, setRange] = useState(null);
   const legend = useLegendInfo();
   // Tile URL template and legend of the selected overlay; the API builds the template with the day's colormap.
@@ -68,7 +67,6 @@ function HomePage() {
           selectedLayer={selectedLayer}
           layer={layer}
           overlayUrl={overlayUrl}
-          autoStretch={autoStretch}
           onRange={setRange}
           overlayOpacity={overlayOpacity}
           showRoads={showRoads}
@@ -79,8 +77,6 @@ function HomePage() {
         <Legend
           layer={layer}
           range={range}
-          autoStretch={autoStretch}
-          onToggleStretch={() => setAutoStretch((v) => !v)}
           loading={legend.loading && !layer}
           error={legend.error}
           onRetry={legend.reload}

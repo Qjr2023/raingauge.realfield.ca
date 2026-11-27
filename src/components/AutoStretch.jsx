@@ -5,10 +5,11 @@ import { createDra } from '../kit/index.js';
 /**
  * Auto-stretch (rendered inside MapContainer): after each map move the kit's controller asks the
  * API for the 2nd..98th percentile of the selected layer's pixels on screen and reports the range
- * through onRange (null when off). The controller is created once; its callbacks read the current
- * layer from a ref, so a layer change only needs a refresh.
+ * through onRange (null when off). Always on in the app (enabled defaults to true). The controller
+ * is created once; its callbacks read the current layer from a ref, so a layer change only needs
+ * a refresh.
  */
-function AutoStretch({ layer, enabled, onRange }) {
+function AutoStretch({ layer, enabled = true, onRange }) {
   const map = useMap();
   const layerRef = useRef(layer);
   const onRangeRef = useRef(onRange);

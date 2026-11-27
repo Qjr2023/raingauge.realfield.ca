@@ -58,8 +58,8 @@ range controller (`createDra`) and the outline overlay. The app runs auto-stretc
 each pan or zoom the 2nd..98th percentile of the pixels on screen comes from `<base>stats/<layer>`
 (nginx proxies a POST with the screen polygon to TiTiler statistics for that one COG), the tile
 URL's `rescale` is rewritten to `0,<p98>` (fade-low keeps the low end at 0) and the legend ends
-follow. The legend has the Prairie Layers toggle (gold when on; off = the region-wide range from
-`legend_info`). The cropland outline (`<base>vector/cropland_outline.geojson`) is drawn on top in
+follow. Auto-stretch is always on in the app (no toggle; the kit's controller is created enabled).
+The cropland outline (`<base>vector/cropland_outline.geojson`) is drawn on top in
 Prairie Layers' gold with its weight-by-zoom steps.
 
 ## Out of scope

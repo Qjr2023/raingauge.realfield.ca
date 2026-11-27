@@ -48,13 +48,12 @@ function InvalidateSize() {
 }
 
 // layer: the selected legend_info entry (tiles template, stats URL, outline URL); overlayUrl: its
-// tiles template with the auto-stretch range applied. The rain TileLayer is keyed on the layer
-// name, so a new range only calls setUrl (a repaint, no remount).
+// tiles template with the auto-stretch range applied (auto-stretch is always on). The rain
+// TileLayer is keyed on the layer name, so a new range only calls setUrl (a repaint, no remount).
 function MapView({
   selectedLayer,
   layer,
   overlayUrl,
-  autoStretch = true,
   onRange,
   overlayOpacity = 0.8,
   showRoads = true,
@@ -85,7 +84,7 @@ function MapView({
         />
       )}
       {layer?.outline && <CroplandOutline url={layer.outline} />}
-      <AutoStretch layer={layer ?? null} enabled={autoStretch} onRange={onRange} />
+      <AutoStretch layer={layer ?? null} onRange={onRange} />
       {showRoads && (
         <TileLayer url={REFERENCE_LAYERS.roads} maxZoom={15} />
       )}
