@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import AutoStretch from './AutoStretch';
+import CroplandOutline from './CroplandOutline';
 
 const PIN_ICON = L.divIcon({
   className: 'map-pin',
@@ -45,9 +47,15 @@ function InvalidateSize() {
   return null;
 }
 
+// layer: the selected legend_info entry (tiles template, stats URL, outline URL); overlayUrl: its
+// tiles template with the auto-stretch range applied. The rain TileLayer is keyed on the layer
+// name, so a new range only calls setUrl (a repaint, no remount).
 function MapView({
   selectedLayer,
+  layer,
   overlayUrl,
+  autoStretch = true,
+  onRange,
   overlayOpacity = 0.8,
   showRoads = true,
   showLabels = true,
@@ -76,6 +84,8 @@ function MapView({
           maxNativeZoom={RAIN_MAX_NATIVE_ZOOM}
         />
       )}
+      {layer?.outline && <CroplandOutline url={layer.outline} />}
+      <AutoStretch layer={layer ?? null} enabled={autoStretch} onRange={onRange} />
       {showRoads && (
         <TileLayer url={REFERENCE_LAYERS.roads} maxZoom={15} />
       )}

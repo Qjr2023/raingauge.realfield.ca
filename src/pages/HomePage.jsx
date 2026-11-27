@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MapView from '../components/MapView';
 import ValuesModal from '../components/ValuesModal';
 import InfoModal from '../components/InfoModal';
@@ -12,6 +12,7 @@ import YearlyComparisonChart from '../components/YearlyComparisonChart';
 import API_CONFIG from '../config/apiConfig';
 import { fetchPrecipitationValues } from '../utils/mapPress';
 import { useLegendInfo } from '../hooks/useLegendInfo';
+import { withRange } from '../utils/tiles';
 
 function HomePage() {
   const [selectedLayer, setSelectedLayer] = useState('weeklyRain');
@@ -25,9 +26,19 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  // Auto-stretch: the colour ramp spans the pixels on screen (range from AutoStretch) instead of
+  // the region-wide rescale in the API's template.
+  const [autoStretch, setAutoStretch] = useState(true);
+  const [range, setRange] = useState(null);
   const legend = useLegendInfo();
   // Tile URL template and legend of the selected overlay; the API builds the template with the day's colormap.
   const layer = legend.info?.[selectedLayer];
+  const overlayUrl = layer ? withRange(layer.tiles, range) : undefined;
+
+  // A new layer starts from its own region-wide range until its on-screen range arrives
+  useEffect(() => {
+    setRange(null);
+  }, [selectedLayer]);
 
   const handleMapPress = async (latlng) => {
     setHasInteracted(true);
@@ -55,7 +66,10 @@ function HomePage() {
       <div className="map-area">
         <MapView
           selectedLayer={selectedLayer}
-          overlayUrl={layer?.tiles}
+          layer={layer}
+          overlayUrl={overlayUrl}
+          autoStretch={autoStretch}
+          onRange={setRange}
           overlayOpacity={overlayOpacity}
           showRoads={showRoads}
           showLabels={showLabels}
@@ -64,6 +78,9 @@ function HomePage() {
         />
         <Legend
           layer={layer}
+          range={range}
+          autoStretch={autoStretch}
+          onToggleStretch={() => setAutoStretch((v) => !v)}
           loading={legend.loading && !layer}
           error={legend.error}
           onRetry={legend.reload}
