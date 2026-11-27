@@ -9,6 +9,8 @@ deploy/.env.example      the settings to fill in (copy to deploy/.env on the ser
 deploy/deploy.sh         build in Docker, render + install the nginx config, publish dist/
 deploy/nginx.conf.template   nginx locations for the app, the API proxy and the tile proxy
 deploy/docker-compose.yml   the API container
+kit.version              tag of the prairie-layers repo whose site/kit is copied into src/kit
+scripts/sync-kit.sh      that copy, for local development (deploy.sh does it on the server)
 ```
 
 How it fits the code:
@@ -20,6 +22,23 @@ How it fits the code:
   `DEPLOY_RAIN_DIR`; the overlays come from a TiTiler (`DEPLOY_TITILER_URL`) that sees the same
   directory as `/data/rain`, through `<path>tiles/`.
 - Both are build arguments of the `Dockerfile`. Unset, the build is identical to the hosted one.
+- `<path>stats/<week|season|year>` (POST, GeoJSON polygon body) proxies to TiTiler's statistics
+  endpoint for the auto-stretch, and `<path>vector/cropland_outline.geojson` serves that one file
+  from `DEPLOY_VECTOR_DIR`. The API's `legend_info` hands both URLs to the app.
+
+## The shared map kit
+
+The map code shared with Prairie Layers (`site/kit` of the private prairie-layers repo) is copied
+into `src/kit/`, which git ignores, at the tag named in `kit.version` (for example `kit-v1`):
+
+- locally, `scripts/sync-kit.sh` copies it from a checkout of prairie-layers next to this one
+  (`PL_DIR`, default `../display`); run it after cloning and after each bump;
+- on the server, `deploy.sh` fetches the tags of `DEPLOY_KIT_CHECKOUT` and copies the kit before
+  the frontend build. A tag that is not in that repo makes the deploy fail with "kit tag ... not
+  found" (and cron retries each minute until it is).
+
+To move to a newer kit: tag it in prairie-layers, write the tag into `kit.version`, run
+`scripts/sync-kit.sh`, test, push.
 
 ## Setup
 

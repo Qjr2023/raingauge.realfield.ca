@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 dist
+# Shared map kit, copied from the prairie-layers repo by scripts/sync-kit.sh / deploy.sh
+src/kit/
 dist-ssr
 *.local
 

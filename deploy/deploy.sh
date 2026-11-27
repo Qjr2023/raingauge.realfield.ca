@@ -16,7 +16,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 [ -f "$here/.env" ] || { echo "missing $here/.env (copy deploy/.env.example and fill it in)"; exit 1; }
 # shellcheck disable=SC1091
 set -a; . "$here/.env"; set +a
-for v in DEPLOY_HOST DEPLOY_BASE DEPLOY_WEBROOT DEPLOY_CHECKOUT DEPLOY_BRANCH DEPLOY_NGINX_CONF DEPLOY_RAIN_DIR DEPLOY_API_PORT DEPLOY_TITILER_URL; do
+for v in DEPLOY_HOST DEPLOY_BASE DEPLOY_WEBROOT DEPLOY_CHECKOUT DEPLOY_BRANCH DEPLOY_NGINX_CONF DEPLOY_RAIN_DIR DEPLOY_API_PORT DEPLOY_TITILER_URL DEPLOY_VECTOR_DIR DEPLOY_KIT_CHECKOUT; do
   [ -n "${!v:-}" ] || { echo "$v is not set in $here/.env"; exit 1; }
 done
 case "$DEPLOY_BASE" in */) ;; *) echo "DEPLOY_BASE must end with /"; exit 1;; esac
@@ -63,6 +63,7 @@ curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null \
 sed -e "s|@@HOST@@|$DEPLOY_HOST|g" -e "s|@@BASE@@|$DEPLOY_BASE|g" -e "s|@@BASE_NOSLASH@@|$base_noslash|g" \
     -e "s|@@WEBROOT@@|${DEPLOY_WEBROOT%/}|g" -e "s|@@API_PORT@@|$DEPLOY_API_PORT|g" \
     -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" -e "s|@@TILES_LIMIT_REQ@@|${DEPLOY_TILES_LIMIT_REQ:-}|g" \
+    -e "s|@@VECTOR_DIR@@|${DEPLOY_VECTOR_DIR%/}|g" \
     "$here/nginx.conf.template" > "$staging/nginx.conf"
 if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
   sudo install -m 644 "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"
@@ -70,6 +71,15 @@ if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
     || { echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1; }
   sudo systemctl reload nginx
 fi
+
+# The shared map kit (site/kit of the prairie-layers repo) at the tag named in kit.version, copied into
+# the build; src/kit is not in git.
+kit_tag=$(tr -d '[:space:]' < kit.version)
+git -C "$DEPLOY_KIT_CHECKOUT" fetch -q --tags origin \
+  || { echo "$(date -Is) NOT deployed $rev: cannot fetch kit tags"; exit 1; }
+rm -rf src/kit && mkdir -p src/kit
+git -C "$DEPLOY_KIT_CHECKOUT" archive "$kit_tag" site/kit | tar -x --strip-components=2 -C src/kit \
+  || { echo "$(date -Is) NOT deployed $rev: kit tag $kit_tag not found"; exit 1; }
 
 # The legacy builder prints a deprecation notice on stderr on every run; keep the log to one line
 # per deploy and show the build output only when the build fails.

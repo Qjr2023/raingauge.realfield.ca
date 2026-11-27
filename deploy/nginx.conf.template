@@ -5,6 +5,8 @@
 #   @@BASE@@         the app (built with VITE_BASE=@@BASE@@)
 #   @@BASE@@api/     the Rain Gauge API container (deploy/docker-compose.yml)
 #   @@BASE@@tiles/   rain overlays rendered by TiTiler from the same rasters
+#   @@BASE@@stats/   TiTiler statistics of the pixels on screen (auto-stretch), POST only
+#   @@BASE@@vector/  the cropland outline (GeoJSON) from @@VECTOR_DIR@@
 
 location = @@BASE_NOSLASH@@ {
     return 301 @@BASE@@;
@@ -53,6 +55,31 @@ location ^~ @@BASE@@ {
     # Anything else under tiles/ is not a page: 404 instead of the SPA fallback. A plain prefix
     # location loses to the regex above when that one matches.
     location @@BASE@@tiles/ {
+        return 404;
+    }
+    # Auto-stretch: percentiles of the pixels on screen for one of the three rain COGs. POST with a
+    # GeoJSON polygon body (the kit's screenRange); nothing else is forwarded.
+    location ~ ^@@BASE@@stats/(week|season|year)$ {
+        if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
+        if ($request_method != POST) { return 405; }
+        @@TILES_LIMIT_REQ@@
+        proxy_pass @@TITILER_URL@@/cog/statistics?url=/data/rain/rain_$1.tif&max_size=256&p=2&p=98;
+        proxy_set_header Host $host;
+        proxy_read_timeout 30s;
+        add_header Cache-Control "no-store";
+    }
+    # Cropland outline (GeoJSON) drawn on top of the rain overlay. The types map above has no
+    # geojson entry, so the type comes from default_type.
+    location = @@BASE@@vector/cropland_outline.geojson {
+        alias @@VECTOR_DIR@@/cropland_outline.geojson;
+        default_type application/geo+json;
+        add_header Cache-Control "public, max-age=86400";
+    }
+    # Anything else under stats/ or vector/ is not a page: 404 instead of the SPA fallback.
+    location @@BASE@@stats/ {
+        return 404;
+    }
+    location @@BASE@@vector/ {
         return 404;
     }
 

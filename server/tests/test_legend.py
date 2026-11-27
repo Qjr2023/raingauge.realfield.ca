@@ -68,6 +68,9 @@ def test_legend_info_shape():
     assert w["uri"] == "/raingauge/api/legend/weeklyRain.png"
     assert w["tiles"].startswith("/raingauge/tiles/week/{z}/{x}/{y}.png?resampling=bilinear&")
     assert w["tiles"].endswith(tile_query(w["breaks"]))
+    assert w["stats"] == "/raingauge/stats/week"
+    assert w["fade_low"] is True
+    assert w["outline"] == "/raingauge/vector/cropland_outline.geojson"
     assert w["as_of"] == "2026-11-25"
     s = info["seasonRain"]
     assert s["label"] == "Growing season"
@@ -78,6 +81,7 @@ def test_legend_info_shape():
     assert y["range"] == [0.0, 175.0]
     assert y["title"] == "Crop Year Precipitation (Sept 2026 to now)."
     assert y["tiles"].startswith("/raingauge/tiles/year/")
+    assert y["stats"] == "/raingauge/stats/year"
 
 
 def test_legend_png_is_the_opaque_ramp():
