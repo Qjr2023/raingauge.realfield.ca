@@ -4,9 +4,9 @@ import Modal from './Modal';
 import { CheckIcon, InfoIcon, LayersIcon } from './Icons';
 
 const LAYERS = [
-  { value: 'weeklyRain', label: 'Last week' },
-  { value: 'seasonRain', label: 'Growing Season' },
-  { value: 'yearRain', label: 'Crop Year' },
+  { value: 'weeklyRain', label: 'Last 7 days' },
+  { value: 'seasonRain', label: 'Growing season' },
+  { value: 'yearRain', label: 'Crop year' },
 ];
 
 // Swatch beside each option: the layer's ramp from legend_info, blank until it has loaded.
