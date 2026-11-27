@@ -18,6 +18,19 @@ const PIN_ICON = L.divIcon({
 const CENTER = [52.1557, -106.69];
 // Rain tiles exist up to zoom 10 (the data is 2.5 km per pixel); Leaflet scales them up beyond that.
 const RAIN_MAX_NATIVE_ZOOM = 10;
+// The rain rasters cover the Prairies (the BC Peace to eastern Manitoba, the US border to about
+// 58.7 N). The map stays on that: no panning off into the rest of the world, no zooming out past
+// the whole region (4 fits it on a phone) or in past where a 2.5 km pixel is a blur (13: a field).
+const DATA_BOUNDS = [
+  [48.98, -122.22],
+  [58.68, -95.36],
+];
+const MAX_BOUNDS = [
+  [47.5, -124.0],
+  [60.0, -93.5],
+];
+const MIN_ZOOM = 4;
+const MAX_ZOOM = 13;
 
 const REFERENCE_LAYERS = {
   roads:
@@ -65,6 +78,11 @@ function MapView({
     <MapContainer
       center={CENTER}
       zoom={7}
+      minZoom={MIN_ZOOM}
+      maxZoom={MAX_ZOOM}
+      maxBounds={MAX_BOUNDS}
+      maxBoundsViscosity={1}
+      worldCopyJump={false}
       className="map-container"
       zoomControl
       attributionControl={false}
@@ -72,24 +90,27 @@ function MapView({
       <InvalidateSize />
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        maxZoom={15}
+        maxZoom={MAX_ZOOM}
+        noWrap
       />
       {overlayUrl && (
         <TileLayer
           key={selectedLayer}
           url={overlayUrl}
           opacity={overlayOpacity}
-          maxZoom={15}
+          maxZoom={MAX_ZOOM}
           maxNativeZoom={RAIN_MAX_NATIVE_ZOOM}
+          bounds={DATA_BOUNDS}
+          noWrap
         />
       )}
       {layer?.outline && <CroplandOutline url={layer.outline} />}
       <AutoStretch layer={layer ?? null} onRange={onRange} />
       {showRoads && (
-        <TileLayer url={REFERENCE_LAYERS.roads} maxZoom={15} />
+        <TileLayer url={REFERENCE_LAYERS.roads} maxZoom={MAX_ZOOM} noWrap />
       )}
       {showLabels && (
-        <TileLayer url={REFERENCE_LAYERS.labels} maxZoom={15} />
+        <TileLayer url={REFERENCE_LAYERS.labels} maxZoom={MAX_ZOOM} noWrap />
       )}
       <MapClickHandler onMapPress={onMapPress} />
       {markerPosition && (
