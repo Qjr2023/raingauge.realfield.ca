@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MapView from '../components/MapView';
 import ValuesModal from '../components/ValuesModal';
 import InfoModal from '../components/InfoModal';
@@ -6,12 +6,11 @@ import Legend from '../components/Legend';
 import ButtonBar from '../components/ButtonBar';
 import LogoCarousel from '../components/LogoCarousel';
 import { TapIcon } from '../components/Icons';
-import ChartModal from '../components/ChartModal';
-import DailyPrecipitationChart from '../components/DailyPrecipitationChart';
-import YearlyComparisonChart from '../components/YearlyComparisonChart';
-import API_CONFIG from '../config/apiConfig';
+import RainChartModal from '../components/RainChartModal';
 import { fetchPrecipitationValues } from '../utils/mapPress';
+import { loadRainSeries } from '../utils/rainSeries';
 import { useLegendInfo } from '../hooks/useLegendInfo';
+import { useRainStats } from '../hooks/useRainStats';
 import { withRange } from '../utils/tiles';
 
 function HomePage() {
@@ -26,10 +25,15 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  // The daily rain record at the tapped point, for the charts: { loading, data | null, error | null }
+  const [rain, setRain] = useState({ loading: false, data: null, error: null });
+  // The latest tap wins: results of an earlier tap are dropped when they arrive
+  const tapSeq = useRef(0);
   // Auto-stretch (always on): the colour ramp spans the pixels on screen (range from AutoStretch)
   // instead of the region-wide rescale in the API's template.
   const [range, setRange] = useState(null);
   const legend = useLegendInfo();
+  const rainStats = useRainStats();
   // Tile URL template and legend of the selected overlay; the API builds the template with the day's colormap.
   const layer = legend.info?.[selectedLayer];
   const overlayUrl = layer ? withRange(layer.tiles, range) : undefined;
@@ -40,12 +44,46 @@ function HomePage() {
   }, [selectedLayer]);
 
   const handleMapPress = async (latlng) => {
+    const seq = ++tapSeq.current;
     setHasInteracted(true);
     setMarkerPosition(latlng);
     setModalData(null);
     setLoading(true);
     setModalVisible(true);
+    // The charts' series is read alongside the totals so it is ready when a chart is opened
+    const pointTemplate = layer?.point;
+    const stats = rainStats.stats;
+    if (!pointTemplate || !stats) {
+      setRain({
+        loading: false,
+        data: null,
+        error: 'The chart data is not available yet. Please tap the map again.',
+      });
+    } else {
+      setRain({ loading: true, data: null, error: null });
+      loadRainSeries({ pointTemplate, stats, latlng }).then(
+        (data) => {
+          if (seq !== tapSeq.current) return;
+          if (data.fetchedYears.length === 0) {
+            setRain({
+              loading: false,
+              data: null,
+              error:
+                'Could not load the rain record. Please check your connection and tap the map again.',
+            });
+          } else {
+            setRain({ loading: false, data, error: null });
+          }
+        },
+        (e) => {
+          console.error('Error loading the rain series:', e);
+          if (seq === tapSeq.current)
+            setRain({ loading: false, data: null, error: 'Could not load the rain record.' });
+        }
+      );
+    }
     const data = await fetchPrecipitationValues(latlng);
+    if (seq !== tapSeq.current) return;
     setModalData(data);
     setLoading(false);
   };
@@ -99,46 +137,35 @@ function HomePage() {
         onYearChartOpen={() => openChart('year')}
       />
 
-      <ChartModal
+      <RainChartModal
         visible={activeChart === 'daily'}
         onClose={closeChart}
-        title="Daily precipitation chart"
+        title="Daily rain, last 30 days"
         summary={modalData?.weekly_precipitation}
-        endpoint={API_CONFIG.ENDPOINTS.DAILY_PRECIPITATION}
-        markerPosition={markerPosition}
-      >
-        {(data) => <DailyPrecipitationChart dailyData={data} />}
-      </ChartModal>
+        kind="daily"
+        rain={rain}
+        stats={rainStats.stats}
+      />
 
-      <ChartModal
+      <RainChartModal
         visible={activeChart === 'season'}
         onClose={closeChart}
-        title="Season comparison chart"
+        title="Growing season vs earlier years"
         summary={modalData?.seasonal_precipitation}
-        endpoint={API_CONFIG.ENDPOINTS.SEASON_COMPARISON}
-        markerPosition={markerPosition}
-      >
-        {(data) => (
-          <YearlyComparisonChart seasonData={data} seriesName="Season" />
-        )}
-      </ChartModal>
+        kind="season"
+        rain={rain}
+        stats={rainStats.stats}
+      />
 
-      <ChartModal
+      <RainChartModal
         visible={activeChart === 'year'}
         onClose={closeChart}
-        title="Crop year comparison chart"
+        title="Crop year vs earlier years"
         summary={modalData?.yearly_precipitation}
-        endpoint={API_CONFIG.ENDPOINTS.YEAR_COMPARISON}
-        markerPosition={markerPosition}
-      >
-        {(data) => (
-          <YearlyComparisonChart
-            seasonData={data}
-            seriesName="Crop year"
-            note="April to November only, for every year (no winter data before 2026)."
-          />
-        )}
-      </ChartModal>
+        kind="year"
+        rain={rain}
+        stats={rainStats.stats}
+      />
 
       <InfoModal
         visible={infoModalVisible}

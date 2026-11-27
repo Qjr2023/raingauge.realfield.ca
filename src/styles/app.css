@@ -700,15 +700,35 @@ svg {
   }
 }
 
-.chart-wrap {
-  width: 100%;
-  margin-top: 0.75rem;
+/* The point value the chart sits under, as the values sheet shows it */
+.chart-summary {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
 }
 
-.chart-note {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+.chart-empty {
+  margin: 0.75rem 0;
   color: var(--ink-soft);
+}
+
+/* The kit's rain charts inside the white sheet: dark ink, muted grey, an amber accent that reads on
+   white (the kit's defaults are for Prairie Layers' green card). The sheet centres its text; the
+   chart's headings and captions go back to the left. */
+.rain-charts--app {
+  --rc-ink: var(--ink);
+  --rc-dim: var(--ink-soft);
+  --rc-accent: #b8860b;
+  --rc-accent-ink: #fff;
+  --rc-bar: #41b6c4;
+  --rc-axis: rgba(0, 0, 0, 0.12);
+  --rc-base: rgba(0, 0, 0, 0.45);
+  --rc-cross: rgba(0, 0, 0, 0.5);
+  --rc-prev: rgba(0, 0, 0, 0.3);
+  --rc-avg: rgba(0, 0, 0, 0.75);
+  --rc-week: rgba(184, 134, 11, 0.12);
+  --rc-font: inherit;
+  --rc-display: inherit;
+  text-align: left;
 }
 
 .info-logos {

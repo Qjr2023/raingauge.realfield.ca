@@ -69,6 +69,8 @@ def test_legend_info_shape():
     assert w["tiles"].startswith("/raingauge/tiles/week/{z}/{x}/{y}.png?resampling=bilinear&")
     assert w["tiles"].endswith(tile_query(w["breaks"]))
     assert w["stats"] == "/raingauge/stats/week"
+    assert w["rain_stats"] == "/raingauge/api/rain_stats"
+    assert w["point"] == "/raingauge/point/{cy}/{lon},{lat}"
     assert w["fade_low"] is True
     assert w["outline"] == "/raingauge/vector/cropland_outline.geojson"
     assert w["as_of"] == "2026-11-25"
