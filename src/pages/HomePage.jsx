@@ -142,6 +142,7 @@ function HomePage() {
         onShowLabelsChange={setShowLabels}
         onInfoPress={() => setInfoModalVisible(true)}
         onLayerChange={setSelectedLayer}
+        legendInfo={legend.info}
       />
 
       <div className="footer-logo">

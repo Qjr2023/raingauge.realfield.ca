@@ -9,6 +9,12 @@ const LAYERS = [
   { value: 'yearRain', label: 'Crop Year' },
 ];
 
+// Swatch beside each option: the layer's ramp from legend_info, blank until it has loaded.
+const swatchFor = (info) =>
+  info?.palette
+    ? `linear-gradient(135deg, ${info.palette.join(', ')})`
+    : 'transparent';
+
 function ButtonBar({
   selectedLayer,
   overlayOpacity,
@@ -19,6 +25,7 @@ function ButtonBar({
   onShowLabelsChange,
   onInfoPress,
   onLayerChange,
+  legendInfo,
 }) {
   const [layerModalVisible, setLayerModalVisible] = useState(false);
 
@@ -61,7 +68,12 @@ function ButtonBar({
               aria-pressed={active}
               onClick={() => handleLayerChange(layer.value)}
             >
-              <span>{layer.label}</span>
+              <span
+                className="layer-swatch"
+                style={{ background: swatchFor(legendInfo?.[layer.value]) }}
+                aria-hidden="true"
+              />
+              <span className="layer-option__label">{layer.label}</span>
               {active && <CheckIcon size={18} />}
             </button>
           );
