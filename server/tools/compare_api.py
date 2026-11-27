@@ -2,8 +2,8 @@
 
     python compare_api.py https://api.example.org https://server.example.org/raingauge/api
 
-Prints, per point: the three window totals from each API, and per comparison chart the per-year
-difference. Weekly totals are expected to agree to about 0.1 mm; history differs by source.
+Prints, per point, the three window totals from each API (precipitation_values). Weekly totals are
+expected to agree to about 0.1 mm; history differs by source.
 A point that one side answers with an HTTP error is reported as such and skipped.
 """
 import json
@@ -54,17 +54,6 @@ def main(old: str, new: str) -> None:
             f"{mm(a['seasonal_precipitation']):8.1f}/{mm(b['seasonal_precipitation']):<8.1f} "
             f"{mm(a['yearly_precipitation']):7.1f}/{mm(b['yearly_precipitation']):<7.1f}"
         )
-    for chart in ("season_comparison", "year_comparison"):
-        print(f"\n{chart}: precip_sum old -> new (difference)")
-        for name, (lat, lon) in POINTS.items():
-            try:
-                a = {int(r["year"]): r["precip_sum"] for r in post(old, chart, lat, lon)["data"]}
-                b = {int(r["year"]): r["precip_sum"] for r in post(new, chart, lat, lon)["data"]}
-            except urllib.error.HTTPError as e:
-                print(f"  {name:14} HTTP {e.code} ({e.url})")
-                continue
-            cells = [f"{y}: {a[y]:.0f}->{b[y]:.0f} ({b[y]-a[y]:+.0f})" for y in sorted(set(a) & set(b))]
-            print(f"  {name:14} " + "  ".join(cells))
 
 
 if __name__ == "__main__":

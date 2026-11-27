@@ -1,8 +1,8 @@
 """Point reads of the rain rasters the pipeline writes (docs/specs/2026-11-26-vm-api-design.md).
 
-rain_week/season/year.tif: one band, the window sum. rain_daily_<cy>.tif: one band per day of the
-crop year, band description = ISO date, nodata = day missing. rain_stats.json: newest day, crop
-years, window dates and percentiles.
+rain_week/season/year.tif: one band, the window sum. rain_stats.json: newest day, crop years,
+window dates and percentiles. (The daily stacks rain_daily_<cy>.tif are read by TiTiler through the
+point route, not here.)
 """
 import json
 import math
@@ -70,29 +70,3 @@ class RainData:
             return None
         values, _, nodata = col
         return values[0] if self._present(values[0], nodata) else None
-
-    def stack_series(self, cy: int, lon: float, lat: float) -> dict[date, float]:
-        """Daily values of crop year `cy` at a point, present days only; {} if no stack/outside."""
-        path = self.rain_dir / f"rain_daily_{cy}.tif"
-        if not path.exists():
-            return {}
-        col = self._column(path, lon, lat)
-        if col is None:
-            return {}
-        values, descriptions, nodata = col
-        out: dict[date, float] = {}
-        for v, desc in zip(values, descriptions):
-            if desc and self._present(v, nodata):
-                try:
-                    day = date.fromisoformat(desc[:10])
-                except ValueError as e:
-                    raise DataUnavailable(f"{path.name}: band description {desc!r}") from e
-                out[day] = v
-        return out
-
-    def series_for_years(self, crop_years: list[int], lon: float, lat: float) -> dict[date, float]:
-        """stack_series of several crop years merged into one date -> mm dict."""
-        merged: dict[date, float] = {}
-        for cy in crop_years:
-            merged.update(self.stack_series(cy, lon, lat))
-        return merged

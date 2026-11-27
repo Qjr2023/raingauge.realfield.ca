@@ -1,10 +1,12 @@
 """Virtual Rain Gauge API served from the VM's own rasters.
 
-Same request and response formats as the original Cloud Run API (api.realfield.ca), so the web app
-and later the mobile app can use either.
+Same request and response formats as the original Cloud Run API (api.realfield.ca) for the
+endpoints kept, so the web app and later the mobile app can use either. The original's three chart
+endpoints (daily_precipitation, season_comparison, year_comparison) are gone since 2026-11-27: the
+charts read the daily stacks through the point route and rain_stats instead.
 """
 import logging
-from datetime import date, timedelta
+from datetime import date
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,11 +16,8 @@ from pydantic import BaseModel, Field
 from .config import Settings, settings_from_env
 from .legend import LAYERS, legend_info, legend_png
 from .rain_data import DataUnavailable, RainData
-from .windows import APRIL_TO_NOVEMBER, comparison_rows, crop_year_window, season_window
 
 log = logging.getLogger(__name__)
-
-YEARS_SHOWN = 7
 
 # Verbatim copy of the original API's /version output for the mobile apps.
 MOBILE_VERSIONS: dict[str, dict] = {
@@ -112,44 +111,6 @@ def create_app(settings: Settings) -> FastAPI:
             "seasonal_precipitation": _window_text(stats, "season", values["season"] or 0.0),
             "yearly_precipitation": _window_text(stats, "year", values["year"] or 0.0),
         }
-
-    @app.post("/daily_precipitation")
-    def daily_precipitation(p: Point) -> dict:
-        stats = data.stats()
-        newest = date.fromisoformat(stats["newest_day"])
-        # The 7 days straddle two stacks when newest is Sep 1 .. 6.
-        series = data.series_for_years(stats["crop_years"][-2:], p.lon, p.lat)
-        days = [newest - timedelta(days=i) for i in range(7)]
-        out = {d.isoformat(): {"precip": round(series[d], 2)} for d in days if d in series}
-        if not out:
-            raise no_data()
-        return out
-
-    def _comparison(p: Point, kind: str) -> dict:
-        stats = data.stats()
-        newest = date.fromisoformat(stats["newest_day"])
-        current_cy = stats["crop_years"][-1]
-        if kind == "season":
-            current = int(stats["layers"]["season"]["start"][:4])
-            years = list(range(current - YEARS_SHOWN + 1, current + 1))
-            stacks = list(range(years[0], current_cy + 1))  # season Y spans stacks Y and Y+1
-            window, months = season_window, None
-        else:
-            years = list(range(current_cy - YEARS_SHOWN + 1, current_cy + 1))
-            stacks = years
-            window, months = crop_year_window, APRIL_TO_NOVEMBER
-        series = data.series_for_years(stacks, p.lon, p.lat)
-        if not series:
-            raise no_data()
-        return {"data": comparison_rows(series, years, window, newest, months)}
-
-    @app.post("/season_comparison")
-    def season_comparison(p: Point) -> dict:
-        return _comparison(p, "season")
-
-    @app.post("/year_comparison")
-    def year_comparison(p: Point) -> dict:
-        return _comparison(p, "year")
 
     return app
 

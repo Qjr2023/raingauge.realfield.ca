@@ -52,6 +52,8 @@ November only.
 
 All responses `application/json`. POST bodies: `{"lat": <float>, "lon": <float>}`.
 
+> **2026-11-27:** `/daily_precipitation`, `/season_comparison` and `/year_comparison` were removed. The app's charts read the daily stacks through nginx's `point/` route (TiTiler) and `/rain_stats`; see docs/specs/2026-11-27-prairie-layers-look-design.md.
+
 | Endpoint | Response | Source |
 | --- | --- | --- |
 | `POST /precipitation_values` | `{"weekly_precipitation": "Last 7 days: 8.5mm", "seasonal_precipitation": "Apr 01 - Oct 31: 408.7mm", "yearly_precipitation": "Sept 01 - today: 144.6mm"}` | one pixel of each window COG; dates from `rain_stats.json` ("today" while the window is still open, the end date once it is capped) |
