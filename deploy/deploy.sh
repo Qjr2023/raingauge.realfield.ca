@@ -12,88 +12,95 @@
 #   deploy.sh --local    build the checkout as it is (no fetch), e.g. after an rsync from a PC
 set -euo pipefail
 
-here=$(cd "$(dirname "$0")" && pwd)
-[ -f "$here/.env" ] || { echo "missing $here/.env (copy deploy/.env.example and fill it in)"; exit 1; }
-# shellcheck disable=SC1091
-set -a; . "$here/.env"; set +a
-for v in DEPLOY_HOST DEPLOY_BASE DEPLOY_WEBROOT DEPLOY_CHECKOUT DEPLOY_BRANCH DEPLOY_NGINX_CONF DEPLOY_RAIN_DIR DEPLOY_API_PORT DEPLOY_TITILER_URL DEPLOY_VECTOR_DIR DEPLOY_KIT_CHECKOUT; do
-  [ -n "${!v:-}" ] || { echo "$v is not set in $here/.env"; exit 1; }
-done
-case "$DEPLOY_BASE" in */) ;; *) echo "DEPLOY_BASE must end with /"; exit 1;; esac
-base_noslash=${DEPLOY_BASE%/}; [ -n "$base_noslash" ] || base_noslash=/
-IMAGE=raingauge-web-build
+# Everything runs inside main() so bash parses the whole file before executing: when the git reset
+# below replaces this script with a newer version mid-run, the running copy stays consistent.
+main() {
 
-cd "$DEPLOY_CHECKOUT"
-# One deploy at a time: cron runs every minute and a first build takes minutes.
-exec 9>"$DEPLOY_CHECKOUT/.deploy.lock"
-flock -n 9 || { [ -n "${1:-}" ] && echo "another deploy.sh is running"; exit 0; }
+  here=$(cd "$(dirname "$0")" && pwd)
+  [ -f "$here/.env" ] || { echo "missing $here/.env (copy deploy/.env.example and fill it in)"; exit 1; }
+  # shellcheck disable=SC1091
+  set -a; . "$here/.env"; set +a
+  for v in DEPLOY_HOST DEPLOY_BASE DEPLOY_WEBROOT DEPLOY_CHECKOUT DEPLOY_BRANCH DEPLOY_NGINX_CONF DEPLOY_RAIN_DIR DEPLOY_API_PORT DEPLOY_TITILER_URL DEPLOY_VECTOR_DIR DEPLOY_KIT_CHECKOUT; do
+    [ -n "${!v:-}" ] || { echo "$v is not set in $here/.env"; exit 1; }
+  done
+  case "$DEPLOY_BASE" in */) ;; *) echo "DEPLOY_BASE must end with /"; exit 1;; esac
+  base_noslash=${DEPLOY_BASE%/}; [ -n "$base_noslash" ] || base_noslash=/
+  IMAGE=raingauge-web-build
 
-if [ "${1:-}" != --local ]; then
-  git fetch -q origin "$DEPLOY_BRANCH"
-  # Compare against the last SUCCESSFUL deploy (.deployed), not HEAD, so a failed run is retried
-  # by the next cron tick instead of being skipped because the checkout already moved.
-  wanted=$(git rev-parse "origin/$DEPLOY_BRANCH")
-  if [ "$(cat .deployed 2>/dev/null)" = "$wanted" ] && [ "${1:-}" != --force ]; then
-    exit 0
+  cd "$DEPLOY_CHECKOUT"
+  # One deploy at a time: cron runs every minute and a first build takes minutes.
+  exec 9>"$DEPLOY_CHECKOUT/.deploy.lock"
+  flock -n 9 || { [ -n "${1:-}" ] && echo "another deploy.sh is running"; exit 0; }
+
+  if [ "${1:-}" != --local ]; then
+    git fetch -q origin "$DEPLOY_BRANCH"
+    # Compare against the last SUCCESSFUL deploy (.deployed), not HEAD, so a failed run is retried
+    # by the next cron tick instead of being skipped because the checkout already moved.
+    wanted=$(git rev-parse "origin/$DEPLOY_BRANCH")
+    if [ "$(cat .deployed 2>/dev/null)" = "$wanted" ] && [ "${1:-}" != --force ]; then
+      exit 0
+    fi
+    git reset -q --hard "$wanted"
   fi
-  git reset -q --hard "$wanted"
-fi
-rev=$(git log -1 --format='%h %s' | cut -c1-100)
+  rev=$(git log -1 --format='%h %s' | cut -c1-100)
 
-staging=$(mktemp -d)
-cid=
-trap 'rm -rf "$staging"; [ -n "$cid" ] && docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+  staging=$(mktemp -d)
+  cid=
+  trap 'rm -rf "$staging"; [ -n "$cid" ] && docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
 
-# The API container: build the image and (re)create the container only when something changed.
-# Wait on /version, which answers without touching the rain data, so a data problem does not
-# block a deploy (and /health reports it as before).
-docker compose --env-file "$here/.env" -f "$here/docker-compose.yml" up -d --build --quiet-pull \
-  >/dev/null 2>"$staging/compose.log" \
-  || { echo "$(date -Is) NOT deployed $rev: api container failed"; cat "$staging/compose.log"; exit 1; }
-# A rebuilt image can take a while to start its workers; wait up to a minute.
-for _ in $(seq 60); do
-  curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null && break
-  sleep 1
-done
-curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null \
-  || { echo "$(date -Is) NOT deployed $rev: api not healthy"; docker logs --tail 30 raingauge-api; exit 1; }
+  # The API container: build the image and (re)create the container only when something changed.
+  # Wait on /version, which answers without touching the rain data, so a data problem does not
+  # block a deploy (and /health reports it as before).
+  docker compose --env-file "$here/.env" -f "$here/docker-compose.yml" up -d --build --quiet-pull \
+    >/dev/null 2>"$staging/compose.log" \
+    || { echo "$(date -Is) NOT deployed $rev: api container failed"; cat "$staging/compose.log"; exit 1; }
+  # A rebuilt image can take a while to start its workers; wait up to a minute.
+  for _ in $(seq 60); do
+    curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null && break
+    sleep 1
+  done
+  curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null \
+    || { echo "$(date -Is) NOT deployed $rev: api not healthy"; docker logs --tail 30 raingauge-api; exit 1; }
 
-# nginx config: render the template, install only when it differs, test, reload. This comes after
-# the API container is up so nginx never points at a port that is not answering yet.
-sed -e "s|@@HOST@@|$DEPLOY_HOST|g" -e "s|@@BASE@@|$DEPLOY_BASE|g" -e "s|@@BASE_NOSLASH@@|$base_noslash|g" \
-    -e "s|@@WEBROOT@@|${DEPLOY_WEBROOT%/}|g" -e "s|@@API_PORT@@|$DEPLOY_API_PORT|g" \
-    -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" -e "s|@@TILES_LIMIT_REQ@@|${DEPLOY_TILES_LIMIT_REQ:-}|g" \
-    -e "s|@@VECTOR_DIR@@|${DEPLOY_VECTOR_DIR%/}|g" \
-    "$here/nginx.conf.template" > "$staging/nginx.conf"
-if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
-  sudo install -m 644 "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"
-  sudo nginx -t >/dev/null 2>"$staging/nginx.log" \
-    || { echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1; }
-  sudo systemctl reload nginx
-fi
+  # nginx config: render the template, install only when it differs, test, reload. This comes after
+  # the API container is up so nginx never points at a port that is not answering yet.
+  sed -e "s|@@HOST@@|$DEPLOY_HOST|g" -e "s|@@BASE@@|$DEPLOY_BASE|g" -e "s|@@BASE_NOSLASH@@|$base_noslash|g" \
+      -e "s|@@WEBROOT@@|${DEPLOY_WEBROOT%/}|g" -e "s|@@API_PORT@@|$DEPLOY_API_PORT|g" \
+      -e "s|@@TITILER_URL@@|${DEPLOY_TITILER_URL%/}|g" -e "s|@@TILES_LIMIT_REQ@@|${DEPLOY_TILES_LIMIT_REQ:-}|g" \
+      -e "s|@@VECTOR_DIR@@|${DEPLOY_VECTOR_DIR%/}|g" \
+      "$here/nginx.conf.template" > "$staging/nginx.conf"
+  if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
+    sudo install -m 644 "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"
+    sudo nginx -t >/dev/null 2>"$staging/nginx.log" \
+      || { echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1; }
+    sudo systemctl reload nginx
+  fi
 
-# The shared map kit (site/kit of the prairie-layers repo) at the tag named in kit.version, copied into
-# the build; src/kit is not in git.
-kit_tag=$(tr -d '[:space:]' < kit.version)
-git -C "$DEPLOY_KIT_CHECKOUT" fetch -q --tags origin \
-  || { echo "$(date -Is) NOT deployed $rev: cannot fetch kit tags"; exit 1; }
-rm -rf src/kit && mkdir -p src/kit
-git -C "$DEPLOY_KIT_CHECKOUT" archive "$kit_tag" site/kit | tar -x --strip-components=2 -C src/kit \
-  || { echo "$(date -Is) NOT deployed $rev: kit tag $kit_tag not found"; exit 1; }
+  # The shared map kit (site/kit of the prairie-layers repo) at the tag named in kit.version, copied into
+  # the build; src/kit is not in git.
+  kit_tag=$(tr -d '[:space:]' < kit.version)
+  git -C "$DEPLOY_KIT_CHECKOUT" fetch -q --tags origin \
+    || { echo "$(date -Is) NOT deployed $rev: cannot fetch kit tags"; exit 1; }
+  rm -rf src/kit && mkdir -p src/kit
+  git -C "$DEPLOY_KIT_CHECKOUT" archive "$kit_tag" site/kit | tar -x --strip-components=2 -C src/kit \
+    || { echo "$(date -Is) NOT deployed $rev: kit tag $kit_tag not found"; exit 1; }
 
-# The legacy builder prints a deprecation notice on stderr on every run; keep the log to one line
-# per deploy and show the build output only when the build fails.
-docker build -q --target build \
-  --build-arg VITE_BASE="$DEPLOY_BASE" --build-arg VITE_API_BASE_URL="${DEPLOY_BASE}api" \
-  -t "$IMAGE" . >/dev/null 2>"$staging/build.log" \
-  || { echo "$(date -Is) NOT deployed $rev: docker build failed"; cat "$staging/build.log"; exit 1; }
-cid=$(docker create "$IMAGE")
-docker cp "$cid:/app/dist/." "$staging/dist/"
-[ -s "$staging/dist/index.html" ] || { echo "$(date -Is) NOT deployed $rev: no index.html in build"; exit 1; }
+  # The legacy builder prints a deprecation notice on stderr on every run; keep the log to one line
+  # per deploy and show the build output only when the build fails.
+  docker build -q --target build \
+    --build-arg VITE_BASE="$DEPLOY_BASE" --build-arg VITE_API_BASE_URL="${DEPLOY_BASE}api" \
+    -t "$IMAGE" . >/dev/null 2>"$staging/build.log" \
+    || { echo "$(date -Is) NOT deployed $rev: docker build failed"; cat "$staging/build.log"; exit 1; }
+  cid=$(docker create "$IMAGE")
+  docker cp "$cid:/app/dist/." "$staging/dist/"
+  [ -s "$staging/dist/index.html" ] || { echo "$(date -Is) NOT deployed $rev: no index.html in build"; exit 1; }
 
-# World-readable for nginx (mktemp -d is 0700 and rsync -a would keep that).
-sudo mkdir -p "$DEPLOY_WEBROOT"
-sudo rsync -a --delete --chmod=D755,F644 "$staging/dist/" "$DEPLOY_WEBROOT/"
-sudo chmod 755 "$DEPLOY_WEBROOT"
-git rev-parse HEAD > .deployed
-echo "$(date -Is) deployed $rev"
+  # World-readable for nginx (mktemp -d is 0700 and rsync -a would keep that).
+  sudo mkdir -p "$DEPLOY_WEBROOT"
+  sudo rsync -a --delete --chmod=D755,F644 "$staging/dist/" "$DEPLOY_WEBROOT/"
+  sudo chmod 755 "$DEPLOY_WEBROOT"
+  git rev-parse HEAD > .deployed
+  echo "$(date -Is) deployed $rev"
+}
+
+main "$@"
