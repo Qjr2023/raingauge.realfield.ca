@@ -65,3 +65,21 @@ Prairie Layers' gold with its weight-by-zoom steps.
 ## Out of scope
 
 The mobile app; the Prairie Layers rain card.
+
+## Charts from the Prairie Layers rain card (added 2026-11-27, later)
+
+- The legend's Auto-stretch toggle is removed from the app; auto-stretch stays on.
+- The three charts behind the point values (daily bars, growing-season comparison, crop-year
+  comparison) are the Prairie Layers rain card charts: 30 days of daily bars with the last 7 days
+  marked, and the cumulative season / crop year against up to six earlier years (gold line = this
+  year, dashed = the earlier years' average, one colour per year, tap a year label to bring it to
+  the front, slide across to read a date). Inline SVG from the kit (`rainseries.js` for the data,
+  `raincharts.js` for the drawing, `rain-charts.css` for the look); Prairie Layers' own rain card
+  uses the same modules.
+- Data: the app reads the daily series at the tapped point straight from TiTiler through
+  `<base>point/<crop year>/<lon>,<lat>` (one request per crop-year stack, as Prairie Layers does)
+  and the window definitions from `<base>api/rain_stats`. The three totals still come from
+  `precipitation_values`.
+- Look: the charts take their colours from CSS variables set by the host. In the app they sit in
+  the white modal sheet (dark ink, muted grey, amber accent that reads on white); nothing turns
+  green except the map legend. The recharts dependency goes.
