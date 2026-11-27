@@ -1,7 +1,8 @@
 """Legend entries, class breaks and the TiTiler colormap for the three rain overlays.
 
-Rules as in the original API: weekly 0 .. p90, season and crop year p5 .. p95, widened to a nice
-step so there are at most 8 classes. Colours: the original 16-stop ramp (cmocean "rain").
+Breaks: 0 .. p95 of the window, widened to a nice step so there are at most 8 classes. Colours:
+the five YlGnBu stops of Prairie Layers' layers.json, interpolated linearly; the lowest 12 % of
+the stretch fades in from transparent so dry ground shows the basemap.
 """
 import io
 import json
@@ -10,13 +11,14 @@ from urllib.parse import quote
 
 from PIL import Image
 
-PALETTE: list[str] = [
-    "#e0d8d3", "#d8c7b4", "#c9ba96", "#b0b188", "#95a87e", "#799f76", "#5b9770", "#388d6d",
-    "#17816e", "#05746e", "#07656b", "#155766", "#20485d", "#253850", "#252a44", "#221b38",
-]
+PALETTE: list[str] = ["#ffffd9", "#c7e9b4", "#41b6c4", "#225ea8", "#0c2c84"]
 LAYERS: dict[str, str] = {"weeklyRain": "week", "seasonRain": "season", "yearRain": "year"}
+LABELS: dict[str, str] = {
+    "weeklyRain": "Last 7 days", "seasonRain": "Growing season", "yearRain": "Crop year",
+}
 _STEPS = (1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000)
-_FAR = 1e9
+_RAMP_INTERVALS = 64
+_FADE_FRACTION = 0.12
 
 
 def nice_breaks(lo: float, hi: float, max_classes: int = 8) -> list[float]:
@@ -33,19 +35,34 @@ def nice_breaks(lo: float, hi: float, max_classes: int = 8) -> list[float]:
     return [float(lo), float(hi)]
 
 
-def _rgba(hex_colour: str) -> list[int]:
+def _rgb(hex_colour: str) -> list[int]:
     h = hex_colour.lstrip("#")
-    return [int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255]
+    return [int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)]
 
 
-def colormap_query(breaks: list[float]) -> str:
-    """TiTiler interval colormap: 16 equal intervals from min to max, open at both ends."""
-    lo, hi = breaks[0], breaks[-1]
-    n = len(PALETTE)
-    edges = [lo + (hi - lo) * i / n for i in range(n + 1)]
-    edges[0], edges[-1] = -_FAR, _FAR
-    intervals = [[[edges[i], edges[i + 1]], _rgba(PALETTE[i])] for i in range(n)]
-    return "colormap=" + quote(json.dumps(intervals, separators=(",", ":")))
+def _ramp_rgb(i: int, n: int = _RAMP_INTERVALS) -> list[int]:
+    """Colour of interval i of n, interpolated linearly between the palette stops."""
+    stops = [_rgb(c) for c in PALETTE]
+    x = ((i + 0.5) / n) * (len(stops) - 1)
+    k = min(math.floor(x), len(stops) - 2)
+    t = x - k
+    return [round(stops[k][j] + (stops[k + 1][j] - stops[k][j]) * t) for j in range(3)]
+
+
+def ramp_colormap(fade_low: bool = True) -> list:
+    """TiTiler interval colormap over 0..255: 64 intervals of the ramp, the low end fading in."""
+    n = _RAMP_INTERVALS
+    out = []
+    for i in range(n):
+        alpha = min(255, round(255 * (i + 1) / (n * _FADE_FRACTION))) if fade_low else 255
+        out.append([[i * 256 / n, (i + 1) * 256 / n], _ramp_rgb(i, n) + [alpha]])
+    return out
+
+
+def tile_query(breaks: list[float]) -> str:
+    """The tiles query string: bilinear resampling, stretch 0..hi and the ramp colormap."""
+    colormap = quote(json.dumps(ramp_colormap(), separators=(",", ":")))
+    return f"resampling=bilinear&rescale=0,{breaks[-1]:g}&colormap={colormap}"
 
 
 # Titles verbatim from the original API (including "Last weeks" without apostrophe),
@@ -60,10 +77,7 @@ def _title(layer: str, stats: dict) -> str:
 
 
 def _breaks_for(layer: str, stats: dict) -> list[float]:
-    w = stats["layers"][LAYERS[layer]]
-    if layer == "weeklyRain":
-        return nice_breaks(0.0, float(w["p90"]))
-    return nice_breaks(float(w["p5"]), float(w["p95"]))
+    return nice_breaks(0.0, float(stats["layers"][LAYERS[layer]]["p95"]))
 
 
 def _mm(v: float) -> str:
@@ -71,35 +85,40 @@ def _mm(v: float) -> str:
 
 
 def legend_info(stats: dict, public_base: str) -> dict:
-    """The /legend_info body: per layer, title, legend image, range, breaks, palette and tiles."""
+    """The /legend_info body: per layer, title, label, legend image, range, palette and tiles."""
     base = public_base if public_base.endswith("/") else public_base + "/"
     out = {}
     for layer, short in LAYERS.items():
         breaks = _breaks_for(layer, stats)
+        hi = breaks[-1]
         out[layer] = {
             "title": _title(layer, stats),
+            "label": LABELS[layer],
             "uri": f"{base}api/legend/{layer}.png",
-            "min": _mm(breaks[0]) if breaks[0] == 0 else "≤" + _mm(breaks[0]),
-            "max": "≥" + _mm(breaks[-1]),
+            "min": _mm(breaks[0]),
+            "max": "≥" + _mm(hi),
+            "units": "mm",
+            "range": [0.0, hi],
             "mode": "continuous",
             "breaks": breaks,
             "palette": PALETTE,
-            "tiles": f"{base}tiles/{short}/{{z}}/{{x}}/{{y}}.png?{colormap_query(breaks)}",
+            "tiles": f"{base}tiles/{short}/{{z}}/{{x}}/{{y}}.png?{tile_query(breaks)}",
             "as_of": stats["newest_day"],
         }
     return out
 
 
 def legend_png(layer: str) -> bytes:
-    """The same 256 x 16 bar of the 16 palette colours for every layer (left = low).
+    """The same 256 x 16 bar of the interpolated ramp for every layer (left = low, opaque).
 
     `layer` is checked so the route can answer 404.
     """
     if layer not in LAYERS:
         raise KeyError(layer)
-    bar = Image.new("RGBA", (16, 1))
-    bar.putdata([tuple(_rgba(c)) for c in PALETTE])
-    img = bar.resize((256, 16), Image.NEAREST)
+    width, height = 256, 16
+    row = [tuple(_ramp_rgb(i, width)) + (255,) for i in range(width)]
+    img = Image.new("RGBA", (width, height))
+    img.putdata(row * height)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()

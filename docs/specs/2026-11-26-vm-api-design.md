@@ -75,10 +75,9 @@ Breaks (as the current API): weekly 0 .. p90, season and year p5 .. p95; the ran
 
 ## Tiles
 
-TiTiler renders the window COG with an interval colormap built from the breaks: 16 intervals from
-`min` to `max`, the original 16-colour palette in order, below `min` the first colour, above `max` the
-last, nodata transparent. The API encodes this as the query string of the `tiles` template in
-`legend_info`, so legend and map always agree. Rain tiles exist to zoom 10; Leaflet scales them.
+The colormap, stretch and resampling rules of the `tiles` template in `legend_info` are in
+docs/specs/2026-11-27-prairie-layers-look-design.md. Rain tiles exist to zoom 10; Leaflet scales
+them.
 
 ## Frontend
 

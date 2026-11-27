@@ -105,7 +105,11 @@ def test_year_comparison_is_april_to_november_only(client):
 def test_legend_info_and_png(client):
     r = client.get("/legend_info")
     assert r.status_code == 200
-    assert r.json()["weeklyRain"]["uri"] == "/raingauge/api/legend/weeklyRain.png"
+    weekly = r.json()["weeklyRain"]
+    assert weekly["uri"] == "/raingauge/api/legend/weeklyRain.png"
+    assert weekly["label"] == "Last 7 days"
+    assert weekly["range"] == [0.0, 25.0]
+    assert "resampling=bilinear&rescale=0,25&colormap=" in weekly["tiles"]
     png = client.get("/legend/weeklyRain.png")
     assert png.status_code == 200
     assert png.headers["content-type"] == "image/png"
