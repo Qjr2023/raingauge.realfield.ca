@@ -30,10 +30,13 @@ flock -n 9 || { [ -n "${1:-}" ] && echo "another deploy.sh is running"; exit 0; 
 
 if [ "${1:-}" != --local ]; then
   git fetch -q origin "$DEPLOY_BRANCH"
-  if [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$DEPLOY_BRANCH")" ] && [ "${1:-}" != --force ]; then
+  # Compare against the last SUCCESSFUL deploy (.deployed), not HEAD, so a failed run is retried
+  # by the next cron tick instead of being skipped because the checkout already moved.
+  wanted=$(git rev-parse "origin/$DEPLOY_BRANCH")
+  if [ "$(cat .deployed 2>/dev/null)" = "$wanted" ] && [ "${1:-}" != --force ]; then
     exit 0
   fi
-  git reset -q --hard "origin/$DEPLOY_BRANCH"
+  git reset -q --hard "$wanted"
 fi
 rev=$(git log -1 --format='%h %s' | cut -c1-100)
 
@@ -47,7 +50,8 @@ trap 'rm -rf "$staging"; [ -n "$cid" ] && docker rm -f "$cid" >/dev/null 2>&1 ||
 docker compose --env-file "$here/.env" -f "$here/docker-compose.yml" up -d --build --quiet-pull \
   >/dev/null 2>"$staging/compose.log" \
   || { echo "$(date -Is) NOT deployed $rev: api container failed"; cat "$staging/compose.log"; exit 1; }
-for _ in $(seq 10); do
+# A rebuilt image can take a while to start its workers; wait up to a minute.
+for _ in $(seq 60); do
   curl -sf "http://127.0.0.1:$DEPLOY_API_PORT/version" >/dev/null && break
   sleep 1
 done
@@ -81,4 +85,5 @@ docker cp "$cid:/app/dist/." "$staging/dist/"
 sudo mkdir -p "$DEPLOY_WEBROOT"
 sudo rsync -a --delete --chmod=D755,F644 "$staging/dist/" "$DEPLOY_WEBROOT/"
 sudo chmod 755 "$DEPLOY_WEBROOT"
+git rev-parse HEAD > .deployed
 echo "$(date -Is) deployed $rev"

@@ -36,4 +36,5 @@ __pycache__/
 
 # Server (deploy/deploy.sh)
 .deploy.lock
+.deployed
 .venv/
