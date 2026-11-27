@@ -42,8 +42,8 @@ location ^~ @@BASE@@ {
         @@TILES_LIMIT_REQ@@
         # Named parameters only: a forwarded $args would let a client append its own url=
         # (TiTiler takes the last one) and read other datasets or remote files. A request
-        # without them gets TiTiler's validation error (4xx), which is fine: the app always
-        # sends all three.
+        # without resampling or rescale gets a TiTiler validation error (4xx); an empty colormap
+        # renders a grey tile. Fine either way: the app always sends all three.
         proxy_pass @@TITILER_URL@@/cog/tiles/WebMercatorQuad/$2/$3/$4.png?url=/data/rain/rain_$1.tif&resampling=$arg_resampling&rescale=$arg_rescale&colormap=$arg_colormap;
         proxy_set_header Host $host;
         proxy_read_timeout 60s;

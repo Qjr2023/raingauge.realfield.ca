@@ -36,10 +36,12 @@ Same place as today (top centre of the map), styled as the Prairie Layers legend
 - Box: `rgba(29, 92, 58, 0.92)` with `backdrop-filter: blur(10px)`, radius 8 px, shadow
   `0 8px 26px rgba(0, 0, 0, 0.28)`, text `#f5f2e8`, width 220 px, padding 8 px 10 px.
 - Title line: the layer `label` in 600 12 px with `letter-spacing 0.02em`, then the units in a
-  dimmer span (`#b9cbbd`, weight 400).
+  dimmer span (`#d3dfd6`, weight 400; lighter than Prairie Layers' `#b9cbbd` so it keeps 4.5:1 contrast
+  over a light basemap).
 - Bar: 12 px high, radius 4 px, `linear-gradient(90deg, <palette>)` drawn in CSS from the
   palette (the PNG is no longer used by the web app).
-- Ends: `0` left, `≥ <hi>` right, 11 px, `#b9cbbd`, tabular numerals.
+- Ends: `0` left, `≥ <hi>` right, 11 px, `#d3dfd6`, tabular numerals. The Retry button uses
+  `#ffd98a` for the same reason.
 - Loading and error states keep their behaviour with colours that read on the dark box.
 
 ## Layer picker

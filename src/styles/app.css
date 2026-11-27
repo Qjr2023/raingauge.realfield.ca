@@ -182,7 +182,7 @@ svg {
 .legend .btn-text {
   border: none;
   background: transparent;
-  color: #e6b84f;
+  color: #ffd98a;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
@@ -207,7 +207,7 @@ svg {
 }
 
 .legend-units {
-  color: #b9cbbd;
+  color: #d3dfd6;
   font-weight: 400;
 }
 
@@ -224,7 +224,7 @@ svg {
   font-size: 11px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
-  color: #b9cbbd;
+  color: #d3dfd6;
   margin-top: 4px;
 }
 
@@ -568,6 +568,10 @@ svg {
 .layer-option__label {
   flex: 1;
   text-align: left;
+}
+
+.layer-swatch--empty {
+  box-shadow: none;
 }
 
 .layer-option--active .layer-swatch {

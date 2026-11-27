@@ -41,7 +41,7 @@ function ButtonBar({
       <AppButton
         theme="primary"
         label="Select Layer"
-        sublabel={current ? current.label : undefined}
+        sublabel={legendInfo?.[selectedLayer]?.label ?? current?.label}
         icon={<LayersIcon />}
         onPress={() => setLayerModalVisible(true)}
       />
@@ -58,6 +58,7 @@ function ButtonBar({
       >
         {LAYERS.map((layer) => {
           const active = layer.value === selectedLayer;
+          const info = legendInfo?.[layer.value];
           return (
             <button
               key={layer.value}
@@ -69,11 +70,13 @@ function ButtonBar({
               onClick={() => handleLayerChange(layer.value)}
             >
               <span
-                className="layer-swatch"
-                style={{ background: swatchFor(legendInfo?.[layer.value]) }}
+                className={
+                  info?.palette ? 'layer-swatch' : 'layer-swatch layer-swatch--empty'
+                }
+                style={{ background: swatchFor(info) }}
                 aria-hidden="true"
               />
-              <span className="layer-option__label">{layer.label}</span>
+              <span className="layer-option__label">{info?.label ?? layer.label}</span>
               {active && <CheckIcon size={18} />}
             </button>
           );
