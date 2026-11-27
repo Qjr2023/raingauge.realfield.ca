@@ -70,9 +70,18 @@ main() {
       -e "s|@@VECTOR_DIR@@|${DEPLOY_VECTOR_DIR%/}|g" \
       "$here/nginx.conf.template" > "$staging/nginx.conf"
   if ! sudo cmp -s "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"; then
+    # When the new config fails the test, put the previous one back: nginx keeps running on it, and
+    # the next run must see a difference again, not an unchanged broken file it reports as deployed.
+    if sudo test -f "$DEPLOY_NGINX_CONF"; then
+      sudo cp -p "$DEPLOY_NGINX_CONF" "$staging/nginx.conf.prev"
+    fi
     sudo install -m 644 "$staging/nginx.conf" "$DEPLOY_NGINX_CONF"
-    sudo nginx -t >/dev/null 2>"$staging/nginx.log" \
-      || { echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1; }
+    if ! sudo nginx -t >/dev/null 2>"$staging/nginx.log"; then
+      if [ -f "$staging/nginx.conf.prev" ]; then
+        sudo install -m 644 "$staging/nginx.conf.prev" "$DEPLOY_NGINX_CONF"
+      fi
+      echo "$(date -Is) NOT deployed $rev: nginx -t failed"; cat "$staging/nginx.log"; exit 1
+    fi
     sudo systemctl reload nginx
   fi
 

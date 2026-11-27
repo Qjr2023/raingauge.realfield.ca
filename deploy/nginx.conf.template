@@ -70,7 +70,8 @@ location ^~ @@BASE@@ {
         add_header Cache-Control "no-store";
     }
     # Daily series at a point for one crop-year stack (the rain card charts; one request per stack).
-    location ~ ^@@BASE@@point/(\d{4})/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$ {
+    # Quoted: nginx reads an unquoted { in a location regex as the start of the block.
+    location ~ "^@@BASE@@point/(\d{4})/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$" {
         if ($scheme = http) { return 301 https://@@HOST@@$request_uri; }
         @@TILES_LIMIT_REQ@@
         proxy_pass @@TITILER_URL@@/cog/point/$2,$3?url=/data/rain/rain_daily_$1.tif;
